@@ -11,6 +11,7 @@ export interface UseCaseDefinition {
   requiredCapabilities: string[];
   documentOperations: DocumentOperation[];
   fhirResources: FhirResourceType[];
+  autoExecutable: boolean;
 }
 
 const useCaseCatalog: Record<UseCase, UseCaseDefinition> = {
@@ -23,6 +24,7 @@ const useCaseCatalog: Record<UseCase, UseCaseDefinition> = {
     requiredCapabilities: ['document-intake', 'citation-generation'],
     documentOperations: ['ingest', 'extract', 'summarize', 'classify'],
     fhirResources: ['DocumentReference', 'Encounter'],
+    autoExecutable: true,
   },
   intake: {
     useCase: 'intake',
@@ -33,6 +35,7 @@ const useCaseCatalog: Record<UseCase, UseCaseDefinition> = {
     requiredCapabilities: ['document-intake', 'eligibility-check'],
     documentOperations: ['ingest', 'extract', 'classify'],
     fhirResources: ['Patient', 'Coverage', 'Appointment'],
+    autoExecutable: true,
   },
   triage: {
     useCase: 'triage',
@@ -43,6 +46,7 @@ const useCaseCatalog: Record<UseCase, UseCaseDefinition> = {
     requiredCapabilities: ['triage-policy', 'care-routing'],
     documentOperations: ['extract', 'summarize'],
     fhirResources: ['Condition', 'Observation', 'Encounter'],
+    autoExecutable: false,
   },
   'patient-outreach': {
     useCase: 'patient-outreach',
@@ -53,6 +57,7 @@ const useCaseCatalog: Record<UseCase, UseCaseDefinition> = {
     requiredCapabilities: ['message-composition', 'approval-gate'],
     documentOperations: ['generate-letter'],
     fhirResources: ['Patient', 'Appointment'],
+    autoExecutable: false,
   },
   'coding-review': {
     useCase: 'coding-review',
@@ -63,6 +68,7 @@ const useCaseCatalog: Record<UseCase, UseCaseDefinition> = {
     requiredCapabilities: ['coding-inference', 'documentation-check'],
     documentOperations: ['extract', 'summarize', 'classify'],
     fhirResources: ['Condition', 'Observation', 'Encounter', 'DocumentReference'],
+    autoExecutable: false,
   },
   unknown: {
     useCase: 'unknown',
@@ -73,6 +79,7 @@ const useCaseCatalog: Record<UseCase, UseCaseDefinition> = {
     requiredCapabilities: ['manual-review'],
     documentOperations: [],
     fhirResources: [],
+    autoExecutable: false,
   },
 };
 

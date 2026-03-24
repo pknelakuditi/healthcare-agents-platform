@@ -43,6 +43,17 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
     useCases: listUseCaseDefinitions(),
   }));
 
+  app.get('/v1/tooling/mock-capabilities', async () => ({
+    documents: {
+      mode: 'mock',
+      supports: ['ingest', 'extract', 'summarize', 'classify', 'generate-letter'],
+    },
+    fhir: {
+      mode: 'mock',
+      supports: ['search', 'read'],
+    },
+  }));
+
   app.post('/v1/orchestrate', async (request, reply) => {
     const body = orchestrateBodySchema.parse(request.body);
     const result = routeAgentTask(body, config);
@@ -56,6 +67,7 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
         containsPhi: body.containsPhi,
         decisionStatus: result.decision.status,
         workflowStage: result.plan.stage,
+        executionStatus: result.execution.status,
       },
     });
 

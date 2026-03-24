@@ -24,3 +24,14 @@
 - Working interpretation:
   - Add the first healthcare-specific implementation layer on top of the foundation.
   - Focus on typed use cases, tool contracts, richer orchestration states, and updated run/test guidance.
+
+## Phase 3
+
+- Date: 2026-03-24
+- Commit label: `Phase 3 mock execution adapters`
+- User prompts:
+  - "yes please"
+- Working interpretation:
+  - Add mock-backed executable document and FHIR adapters.
+  - Execute safe read-only workflows for `document-summary` and `intake`.
+  - Keep write flows gated while exposing richer execution artifacts and verification paths.

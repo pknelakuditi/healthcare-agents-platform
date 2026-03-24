@@ -55,7 +55,8 @@ describe('api', () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.result.decision.status).toBe('accepted');
-    expect(body.result.plan.stage).toBe('execution_ready');
+    expect(body.result.plan.stage).toBe('completed');
+    expect(body.result.execution.status).toBe('completed');
     expect(body.auditEvent.eventType).toBe('orchestration.requested');
   });
 
@@ -81,6 +82,7 @@ describe('api', () => {
     expect(response.statusCode).toBe(403);
     expect(body.result.decision.status).toBe('rejected');
     expect(body.result.plan.stage).toBe('blocked');
+    expect(body.result.execution.status).toBe('not_started');
   });
 
   it('lists supported use cases', async () => {
@@ -97,5 +99,21 @@ describe('api', () => {
     expect(response.statusCode).toBe(200);
     expect(Array.isArray(body.useCases)).toBe(true);
     expect(body.useCases.some((item: { useCase: string }) => item.useCase === 'document-summary')).toBe(true);
+  });
+
+  it('reports mock tool capabilities', async () => {
+    const app = buildApp(config);
+    appsToClose.push(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/tooling/mock-capabilities',
+    });
+
+    const body = response.json();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.documents.mode).toBe('mock');
+    expect(body.fhir.supports).toContain('read');
   });
 });

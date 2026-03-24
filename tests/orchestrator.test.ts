@@ -30,8 +30,10 @@ describe('routeAgentTask', () => {
 
     expect(result.decision.status).toBe('accepted');
     expect(result.decision.assignedAgent).toBe('docs-agent');
-    expect(result.plan.stage).toBe('execution_ready');
+    expect(result.plan.stage).toBe('completed');
     expect(result.plan.toolPlans[0]?.toolset).toBe('documents');
+    expect(result.execution.status).toBe('completed');
+    expect(result.execution.artifacts.some((artifact) => artifact.kind === 'summary')).toBe(true);
   });
 
   it('routes writes into human review', () => {
@@ -50,6 +52,7 @@ describe('routeAgentTask', () => {
     expect(result.decision.status).toBe('held_for_human_review');
     expect(result.decision.assignedAgent).toBe('human-review-gateway');
     expect(result.plan.stage).toBe('human_review');
+    expect(result.execution.status).toBe('not_started');
   });
 
   it('falls back to unknown routing when action type mismatches the use case', () => {
@@ -67,5 +70,23 @@ describe('routeAgentTask', () => {
 
     expect(result.decision.workflow).toBe('manual-triage');
     expect(result.plan.owningAgent).toBe('qa-agent');
+    expect(result.execution.status).toBe('not_started');
+  });
+
+  it('executes intake workflows and returns intake classification artifacts', () => {
+    const result = routeAgentTask(
+      {
+        requestId: 'intake-read',
+        userId: 'user-1',
+        useCase: 'intake',
+        actionType: 'read',
+        containsPhi: false,
+        message: 'Process the new patient intake packet.',
+      },
+      config
+    );
+
+    expect(result.execution.status).toBe('completed');
+    expect(result.execution.artifacts.some((artifact) => artifact.kind === 'classification')).toBe(true);
   });
 });

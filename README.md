@@ -4,13 +4,15 @@ Production-oriented TypeScript foundation for healthcare agent workflows. The re
 
 ## Current Phase
 
-Phase 2 extends the platform with healthcare-aware routing:
+Phase 3 adds executable mock workflows for the first read-only healthcare flows:
 
 - API service with health, readiness, and orchestration endpoints
 - Use-case catalog endpoint for supported workflows
+- Mock tooling capability endpoint for document and FHIR adapters
 - Worker and eval-runner entrypoints
 - Shared configuration, logging, audit, orchestration, OpenAI, safety, use-case, and tool-contract packages
-- Tests for orchestration, policy gating, config loading, API behavior, and use-case routing
+- Mock execution for `document-summary` and `intake`
+- Tests for orchestration, policy gating, config loading, API behavior, use-case routing, and mock providers
 - Prompt logging discipline for every commit
 
 ## Repository Layout
@@ -28,7 +30,7 @@ packages/
   observability/   Structured logging
   orchestration/   Workflow execution primitives
   safety/          Policy and human-approval gates
-  tools/           Typed contracts for document and FHIR toolsets
+  tools/           Typed contracts and mock providers for document and FHIR toolsets
   use-cases/       Healthcare workflow catalog
 tests/             Platform tests
 docs/architecture/ Phase notes and architectural decisions
@@ -124,7 +126,13 @@ curl http://localhost:3000/ready
 curl http://localhost:3000/v1/use-cases
 ```
 
-5. Exercise orchestration with a safe read-only request:
+5. Inspect mock tool capabilities:
+
+```bash
+curl http://localhost:3000/v1/tooling/mock-capabilities
+```
+
+6. Exercise orchestration with a safe read-only request:
 
 ```bash
 curl -X POST http://localhost:3000/v1/orchestrate \
@@ -139,7 +147,22 @@ curl -X POST http://localhost:3000/v1/orchestrate \
   }'
 ```
 
-6. Exercise a write request that should be held for approval:
+7. Exercise a read-only intake request that should execute the mock pipeline:
+
+```bash
+curl -X POST http://localhost:3000/v1/orchestrate \
+  -H "content-type: application/json" \
+  -d '{
+    "requestId": "demo-intake-1",
+    "userId": "ops-user",
+    "useCase": "intake",
+    "actionType": "read",
+    "containsPhi": false,
+    "message": "Normalize the intake packet and verify eligibility context."
+  }'
+```
+
+8. Exercise a write request that should be held for approval:
 
 ```bash
 curl -X POST http://localhost:3000/v1/orchestrate \
@@ -154,7 +177,7 @@ curl -X POST http://localhost:3000/v1/orchestrate \
   }'
 ```
 
-The second request should return `held_for_human_review` while approval is required.
+The intake request should return completed mock execution artifacts. The write request should return `held_for_human_review` while approval is required.
 
 ## Production Notes
 

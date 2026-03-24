@@ -15,6 +15,14 @@ const sampleCases = [
     message: 'Summarize a de-identified discharge note.',
   },
   {
+    requestId: 'eval-intake-1',
+    userId: 'eval-user',
+    useCase: 'intake' as const,
+    actionType: 'read' as const,
+    containsPhi: false,
+    message: 'Normalize the intake packet and verify eligibility context.',
+  },
+  {
     requestId: 'eval-write-review',
     userId: 'eval-user',
     useCase: 'patient-outreach' as const,

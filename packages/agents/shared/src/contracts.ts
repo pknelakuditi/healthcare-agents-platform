@@ -28,8 +28,13 @@ export interface AgentDecision {
 export type WorkflowStage =
   | 'policy_check'
   | 'tool_selection'
+  | 'document_ingestion'
+  | 'fhir_fetch'
+  | 'summarization'
+  | 'classification'
   | 'human_review'
   | 'execution_ready'
+  | 'completed'
   | 'blocked';
 
 export interface ToolPlan {
@@ -46,4 +51,24 @@ export interface WorkflowPlan {
   requiredCapabilities: string[];
   toolPlans: ToolPlan[];
   blockers: string[];
- }
+}
+
+export interface WorkflowArtifact {
+  kind: 'document' | 'fhir' | 'summary' | 'classification';
+  id: string;
+  label: string;
+  data: Record<string, unknown>;
+}
+
+export interface WorkflowStepResult {
+  stage: WorkflowStage;
+  status: 'completed' | 'skipped';
+  summary: string;
+}
+
+export interface WorkflowExecution {
+  status: 'completed' | 'not_started';
+  currentStage: WorkflowStage;
+  steps: WorkflowStepResult[];
+  artifacts: WorkflowArtifact[];
+}

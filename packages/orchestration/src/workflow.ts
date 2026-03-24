@@ -1,11 +1,20 @@
-import type { AgentDecision, AgentTask, ToolPlan, WorkflowPlan } from '../../agents/shared/src/index.js';
+import type {
+  AgentDecision,
+  AgentTask,
+  ToolPlan,
+  WorkflowExecution,
+  WorkflowPlan,
+} from '../../agents/shared/src/index.js';
 import type { PolicyDecision } from '../../safety/src/index.js';
+import type { RuntimeConfig } from '../../config/src/index.js';
 import { getUseCaseDefinition } from '../../use-cases/src/index.js';
+import { executeWorkflow } from './execution.js';
 
 export interface WorkflowResult {
   decision: AgentDecision;
   policy: PolicyDecision;
   plan: WorkflowPlan;
+  execution: WorkflowExecution;
 }
 
 function buildToolPlans(task: AgentTask): ToolPlan[] {
@@ -58,6 +67,12 @@ export function buildWorkflowResult(task: AgentTask, policy: PolicyDecision): Wo
         stage: 'blocked',
         blockers: [policy.reason],
       },
+      execution: {
+        status: 'not_started',
+        currentStage: 'blocked',
+        steps: [],
+        artifacts: [],
+      },
     };
   }
 
@@ -76,6 +91,12 @@ export function buildWorkflowResult(task: AgentTask, policy: PolicyDecision): Wo
         stage: 'human_review',
         blockers: ['Human approval is required before write-side effects can run.'],
       },
+      execution: {
+        status: 'not_started',
+        currentStage: 'human_review',
+        steps: [],
+        artifacts: [],
+      },
     };
   }
 
@@ -92,5 +113,30 @@ export function buildWorkflowResult(task: AgentTask, policy: PolicyDecision): Wo
       ...basePlan,
       stage: 'execution_ready',
     },
+    execution: {
+      status: 'not_started',
+      currentStage: 'execution_ready',
+      steps: [],
+      artifacts: [],
+    },
+  };
+}
+
+export function runWorkflow(task: AgentTask, policy: PolicyDecision, config: RuntimeConfig): WorkflowResult {
+  const planned = buildWorkflowResult(task, policy);
+
+  if (planned.decision.status !== 'accepted') {
+    return planned;
+  }
+
+  const execution = executeWorkflow(task, config);
+
+  return {
+    ...planned,
+    plan: {
+      ...planned.plan,
+      stage: execution.currentStage,
+    },
+    execution,
   };
 }
