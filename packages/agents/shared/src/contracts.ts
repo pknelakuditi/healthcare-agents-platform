@@ -24,3 +24,26 @@ export interface AgentDecision {
   rationale: string;
   nextStep: string;
 }
+
+export type WorkflowStage =
+  | 'policy_check'
+  | 'tool_selection'
+  | 'human_review'
+  | 'execution_ready'
+  | 'blocked';
+
+export interface ToolPlan {
+  toolset: 'documents' | 'fhir';
+  operations: string[];
+  notes: string;
+}
+
+export interface WorkflowPlan {
+  workflowId: string;
+  stage: WorkflowStage;
+  useCaseSummary: string;
+  owningAgent: string;
+  requiredCapabilities: string[];
+  toolPlans: ToolPlan[];
+  blockers: string[];
+ }

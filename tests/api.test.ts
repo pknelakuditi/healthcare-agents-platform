@@ -55,6 +55,7 @@ describe('api', () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.result.decision.status).toBe('accepted');
+    expect(body.result.plan.stage).toBe('execution_ready');
     expect(body.auditEvent.eventType).toBe('orchestration.requested');
   });
 
@@ -79,5 +80,22 @@ describe('api', () => {
 
     expect(response.statusCode).toBe(403);
     expect(body.result.decision.status).toBe('rejected');
+    expect(body.result.plan.stage).toBe('blocked');
+  });
+
+  it('lists supported use cases', async () => {
+    const app = buildApp(config);
+    appsToClose.push(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/use-cases',
+    });
+
+    const body = response.json();
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(body.useCases)).toBe(true);
+    expect(body.useCases.some((item: { useCase: string }) => item.useCase === 'document-summary')).toBe(true);
   });
 });

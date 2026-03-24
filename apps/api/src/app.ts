@@ -5,6 +5,7 @@ import { createLogger } from '../../../packages/observability/src/index.js';
 import { routeAgentTask } from '../../../packages/agents/orchestrator/src/index.js';
 import { createAuditEvent } from '../../../packages/data/audit/src/index.js';
 import { getOpenAiClientStatus } from '../../../packages/ai/openai/src/index.js';
+import { listUseCaseDefinitions } from '../../../packages/use-cases/src/index.js';
 
 const orchestrateBodySchema = z.object({
   requestId: z.string().min(1),
@@ -38,6 +39,10 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
     approvalsRequiredForWrites: config.requireHumanApprovalForWrites,
   }));
 
+  app.get('/v1/use-cases', async () => ({
+    useCases: listUseCaseDefinitions(),
+  }));
+
   app.post('/v1/orchestrate', async (request, reply) => {
     const body = orchestrateBodySchema.parse(request.body);
     const result = routeAgentTask(body, config);
@@ -50,6 +55,7 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
         actionType: body.actionType,
         containsPhi: body.containsPhi,
         decisionStatus: result.decision.status,
+        workflowStage: result.plan.stage,
       },
     });
 

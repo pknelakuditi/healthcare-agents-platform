@@ -14,3 +14,13 @@
   - Build in phases and commit after each completed phase.
   - Maintain a prompt log file that records prompts used for each commit.
   - Include instructions to run, test, and manually verify the implemented features.
+
+## Phase 2
+
+- Date: 2026-03-24
+- Commit label: `Phase 2 use-case and tool modeling`
+- User prompts:
+  - "yes"
+- Working interpretation:
+  - Add the first healthcare-specific implementation layer on top of the foundation.
+  - Focus on typed use cases, tool contracts, richer orchestration states, and updated run/test guidance.

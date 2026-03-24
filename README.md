@@ -4,12 +4,13 @@ Production-oriented TypeScript foundation for healthcare agent workflows. The re
 
 ## Current Phase
 
-Phase 1 establishes the platform baseline:
+Phase 2 extends the platform with healthcare-aware routing:
 
 - API service with health, readiness, and orchestration endpoints
+- Use-case catalog endpoint for supported workflows
 - Worker and eval-runner entrypoints
-- Shared configuration, logging, audit, orchestration, OpenAI, and safety packages
-- Tests for orchestration, policy gating, config loading, and API behavior
+- Shared configuration, logging, audit, orchestration, OpenAI, safety, use-case, and tool-contract packages
+- Tests for orchestration, policy gating, config loading, API behavior, and use-case routing
 - Prompt logging discipline for every commit
 
 ## Repository Layout
@@ -27,6 +28,8 @@ packages/
   observability/   Structured logging
   orchestration/   Workflow execution primitives
   safety/          Policy and human-approval gates
+  tools/           Typed contracts for document and FHIR toolsets
+  use-cases/       Healthcare workflow catalog
 tests/             Platform tests
 docs/architecture/ Phase notes and architectural decisions
 prompt-log.md      Prompts used for each committed phase
@@ -34,7 +37,7 @@ prompt-log.md      Prompts used for each committed phase
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 18.3+
 - npm 10+
 
 ## Setup
@@ -115,7 +118,13 @@ curl http://localhost:3000/health
 curl http://localhost:3000/ready
 ```
 
-4. Exercise orchestration with a safe read-only request:
+4. Inspect supported healthcare use cases:
+
+```bash
+curl http://localhost:3000/v1/use-cases
+```
+
+5. Exercise orchestration with a safe read-only request:
 
 ```bash
 curl -X POST http://localhost:3000/v1/orchestrate \
@@ -130,7 +139,7 @@ curl -X POST http://localhost:3000/v1/orchestrate \
   }'
 ```
 
-5. Exercise a write request that should be held for approval:
+6. Exercise a write request that should be held for approval:
 
 ```bash
 curl -X POST http://localhost:3000/v1/orchestrate \

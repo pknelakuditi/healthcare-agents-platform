@@ -29,7 +29,9 @@ describe('routeAgentTask', () => {
     );
 
     expect(result.decision.status).toBe('accepted');
-    expect(result.decision.assignedAgent).toBe('orchestrator-agent');
+    expect(result.decision.assignedAgent).toBe('docs-agent');
+    expect(result.plan.stage).toBe('execution_ready');
+    expect(result.plan.toolPlans[0]?.toolset).toBe('documents');
   });
 
   it('routes writes into human review', () => {
@@ -47,5 +49,23 @@ describe('routeAgentTask', () => {
 
     expect(result.decision.status).toBe('held_for_human_review');
     expect(result.decision.assignedAgent).toBe('human-review-gateway');
+    expect(result.plan.stage).toBe('human_review');
+  });
+
+  it('falls back to unknown routing when action type mismatches the use case', () => {
+    const result = routeAgentTask(
+      {
+        requestId: 'bad-mode',
+        userId: 'user-1',
+        useCase: 'document-summary',
+        actionType: 'write',
+        containsPhi: false,
+        message: 'Write a payer response letter.',
+      },
+      config
+    );
+
+    expect(result.decision.workflow).toBe('manual-triage');
+    expect(result.plan.owningAgent).toBe('qa-agent');
   });
 });
