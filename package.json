@@ -1,0 +1,36 @@
+{
+  "name": "healthcare-agents-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Production-oriented healthcare agents platform scaffold",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev:api": "tsx watch apps/api/src/server.ts",
+    "dev:worker": "tsx watch apps/worker/src/main.ts",
+    "dev:eval-runner": "tsx watch apps/eval-runner/src/main.ts",
+    "start:api": "node dist/apps/api/src/server.js",
+    "start:worker": "node dist/apps/worker/src/main.js",
+    "start:eval-runner": "node dist/apps/eval-runner/src/main.js",
+    "verify": "npm run typecheck && npm run test && npm run build"
+  },
+  "engines": {
+    "node": ">=18.3.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "fastify": "^4.28.1",
+    "openai": "^6.6.0",
+    "pino": "^9.9.0",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^1.6.0"
+  }
+}

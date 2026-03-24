@@ -1,0 +1,155 @@
+# Healthcare Agents Platform
+
+Production-oriented TypeScript foundation for healthcare agent workflows. The repository is organized as deployable apps plus shared domain packages so new agents, tools, safety checks, and integrations can be added without collapsing into prompt-driven spaghetti.
+
+## Current Phase
+
+Phase 1 establishes the platform baseline:
+
+- API service with health, readiness, and orchestration endpoints
+- Worker and eval-runner entrypoints
+- Shared configuration, logging, audit, orchestration, OpenAI, and safety packages
+- Tests for orchestration, policy gating, config loading, and API behavior
+- Prompt logging discipline for every commit
+
+## Repository Layout
+
+```text
+apps/
+  api/             Fastify API surface
+  worker/          Background process entrypoint
+  eval-runner/     Offline evaluation entrypoint
+packages/
+  agents/          Agent contracts and orchestrator
+  ai/openai/       OpenAI client wrapper
+  config/          Runtime configuration and env parsing
+  data/audit/      Audit event contracts
+  observability/   Structured logging
+  orchestration/   Workflow execution primitives
+  safety/          Policy and human-approval gates
+tests/             Platform tests
+docs/architecture/ Phase notes and architectural decisions
+prompt-log.md      Prompts used for each committed phase
+```
+
+## Prerequisites
+
+- Node.js 20+
+- npm 10+
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env
+```
+
+If you plan to send real traffic to OpenAI, set `OPENAI_API_KEY` and review the healthcare compliance posture before enabling PHI-related flows. Keep `ALLOW_PHI_WITH_OPENAI=false` until legal, security, and vendor agreements are in place.
+
+## Run
+
+Start the API in watch mode:
+
+```bash
+npm run dev:api
+```
+
+Start the worker:
+
+```bash
+npm run dev:worker
+```
+
+Run the eval runner:
+
+```bash
+npm run dev:eval-runner
+```
+
+Build for production:
+
+```bash
+npm run build
+```
+
+Start built services:
+
+```bash
+npm run start:api
+npm run start:worker
+npm run start:eval-runner
+```
+
+## Test
+
+Run all automated checks:
+
+```bash
+npm run verify
+```
+
+Run tests only:
+
+```bash
+npm test
+```
+
+Watch tests during development:
+
+```bash
+npm run test:watch
+```
+
+## Test Features Manually
+
+1. Start the API with `npm run dev:api`.
+2. Check liveness:
+
+```bash
+curl http://localhost:3000/health
+```
+
+3. Check readiness:
+
+```bash
+curl http://localhost:3000/ready
+```
+
+4. Exercise orchestration with a safe read-only request:
+
+```bash
+curl -X POST http://localhost:3000/v1/orchestrate \
+  -H "content-type: application/json" \
+  -d '{
+    "requestId": "demo-read-1",
+    "userId": "ops-user",
+    "useCase": "document-summary",
+    "actionType": "read",
+    "containsPhi": false,
+    "message": "Summarize the uploaded prior authorization packet."
+  }'
+```
+
+5. Exercise a write request that should be held for approval:
+
+```bash
+curl -X POST http://localhost:3000/v1/orchestrate \
+  -H "content-type: application/json" \
+  -d '{
+    "requestId": "demo-write-1",
+    "userId": "ops-user",
+    "useCase": "patient-outreach",
+    "actionType": "write",
+    "containsPhi": false,
+    "message": "Send a reminder to the patient."
+  }'
+```
+
+The second request should return `held_for_human_review` while approval is required.
+
+## Production Notes
+
+- All agent-facing actions should remain behind typed contracts.
+- Audit records should be emitted for every externally visible workflow step.
+- Any future EHR, scheduling, billing, or messaging write path must keep the human-approval gate.
+- Add citations, eval datasets, and access controls before enabling clinical-facing use cases.
