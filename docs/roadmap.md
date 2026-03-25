@@ -32,7 +32,7 @@ Build a production-oriented healthcare agents platform with:
 - Phase 8: Deployment and auth hardening. Commit `99a6bcc`
 - Phase 9: Perimeter controls and machine auth. Commit `171d20c`
 - Phase 10: Externalized perimeter state and gateway auth. Commit `f199b6f`
-- Phase 10A: Manual API testing assets. Commit pending.
+- Phase 10A: Manual API testing assets. Commit `24f79d2`
 
 ## Current Phase
 
