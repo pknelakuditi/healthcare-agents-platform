@@ -54,20 +54,82 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDe
   const reviewRepository: ReviewRepository = deps.reviewRepository ?? persistence.reviewRepository;
   const reviewService = new ReviewQueueService(reviewRepository, config);
   const publicPaths = new Set(['/health']);
+  const rateLimitState = new Map<string, { count: number; windowStartedAt: number }>();
 
   const persistAuditEvent = <TPayload extends Record<string, unknown>>(event: ReturnType<typeof createAuditEvent<TPayload>>) =>
     auditStore.append(event);
 
   app.addHook('onRequest', async (request, reply) => {
     const requestPath = request.raw.url?.split('?')[0] ?? request.url;
+    const origin = request.headers.origin;
+
+    if (config.corsEnabled && origin) {
+      if (!config.corsAllowedOrigins.includes(origin)) {
+        reply.code(403);
+        return reply.send({ error: 'origin_not_allowed' });
+      }
+
+      reply.header('access-control-allow-origin', origin);
+      reply.header('vary', 'Origin');
+      reply.header('access-control-allow-methods', 'GET,POST,OPTIONS');
+      reply.header(
+        'access-control-allow-headers',
+        'content-type,x-client-id,x-api-key,x-timestamp,x-signature,authorization',
+      );
+    }
+
+    if (request.method === 'OPTIONS') {
+      reply.code(204);
+      return reply.send();
+    }
+
+    if (config.rateLimitingEnabled) {
+      const clientIdHeader = Array.isArray(request.headers['x-client-id'])
+        ? request.headers['x-client-id'][0]
+        : request.headers['x-client-id'];
+      const rateLimitKey = clientIdHeader ?? request.ip;
+      const now = Date.now();
+      const existingWindow = rateLimitState.get(rateLimitKey);
+
+      if (!existingWindow || now - existingWindow.windowStartedAt >= config.rateLimitWindowMs) {
+        rateLimitState.set(rateLimitKey, { count: 1, windowStartedAt: now });
+      } else if (existingWindow.count >= config.rateLimitMaxRequests) {
+        const retryAfterSeconds = Math.ceil(
+          (config.rateLimitWindowMs - (now - existingWindow.windowStartedAt)) / 1000,
+        );
+        reply.header('retry-after', String(retryAfterSeconds));
+        reply.code(429);
+        return reply.send({ error: 'rate_limit_exceeded' });
+      } else {
+        existingWindow.count += 1;
+      }
+    }
+
     if (publicPaths.has(requestPath)) {
+      return;
+    }
+  });
+
+  app.addHook('preHandler', async (request, reply) => {
+    const requestPath = request.raw.url?.split('?')[0] ?? request.url;
+    if (publicPaths.has(requestPath) || request.method === 'OPTIONS') {
       return;
     }
 
     try {
-      const authenticatedClient = authenticateApiClient(request.headers, config);
+      const authenticatedClient = authenticateApiClient(request.headers, config, {
+        method: request.method,
+        path: requestPath,
+        body: request.body,
+      });
       if (authenticatedClient) {
-        request.log.info({ authenticatedClientId: authenticatedClient.clientId }, 'API client authenticated');
+        request.log.info(
+          {
+            authenticatedClientId: authenticatedClient.clientId,
+            authenticationMode: authenticatedClient.authenticationMode,
+          },
+          'API client authenticated',
+        );
       }
     } catch (error) {
       reply.code(401);
@@ -118,9 +180,15 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDe
     authorizedReviewerCount: config.authorizedReviewerIds.length,
     persistenceProvider: persistence.provider,
     apiAuthenticationRequired: config.requireApiAuthentication,
+    apiAuthenticationMode: config.apiAuthenticationMode,
     configuredApiClientCount: config.apiClients.length,
     trustProxy: config.trustProxy,
     securityHeadersEnabled: config.securityHeadersEnabled,
+    rateLimitingEnabled: config.rateLimitingEnabled,
+    rateLimitWindowMs: config.rateLimitWindowMs,
+    rateLimitMaxRequests: config.rateLimitMaxRequests,
+    corsEnabled: config.corsEnabled,
+    corsAllowedOrigins: config.corsAllowedOrigins,
   }));
 
   app.get('/v1/use-cases', async () => ({

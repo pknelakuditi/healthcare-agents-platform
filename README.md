@@ -4,7 +4,7 @@ Production-oriented TypeScript foundation for healthcare agent workflows. The re
 
 ## Current Phase
 
-Phase 8 hardens the runtime and deployment posture:
+Phase 9 hardens the platform perimeter:
 
 - API service with health, readiness, and orchestration endpoints
 - Use-case catalog endpoint for supported workflows
@@ -12,6 +12,9 @@ Phase 8 hardens the runtime and deployment posture:
 - Audit event and review queue endpoints
 - Reviewer authorization on approval and rejection endpoints
 - Optional API client authentication for protected routes
+- Configurable HMAC request-signature mode for protected routes
+- Fixed-window rate limiting at the API edge
+- Explicit CORS allowlist and preflight handling
 - Production config guards that fail fast on unsafe mock/auth combinations
 - Security headers and request-id propagation on API responses
 - Eval summary endpoint and in-repo golden cases
@@ -71,6 +74,8 @@ cp .env.example .env
 Reviewer authorization is configured with `AUTHORIZED_REVIEWER_IDS`. Only those ids can approve or reject pending review requests.
 Persistence is now accessed through repository interfaces, with a file-backed adapter as the default implementation.
 Protected routes can require machine-to-machine credentials with `REQUIRE_API_AUTHENTICATION=true` and `API_CLIENT_KEYS=client-id:long-shared-secret`.
+Use `API_AUTHENTICATION_MODE=shared-key` for direct secret auth or `API_AUTHENTICATION_MODE=hmac-signature` for signed requests.
+When `CORS_ENABLED=true`, set exact values in `CORS_ALLOWED_ORIGINS`.
 
 If you plan to send real traffic to OpenAI, set `OPENAI_API_KEY` and review the healthcare compliance posture before enabling PHI-related flows. Keep `ALLOW_PHI_WITH_OPENAI=false` until legal, security, and vendor agreements are in place.
 In production, the runtime now fails fast if API authentication is disabled or if mock OpenAI remains enabled without an explicit override.
@@ -150,6 +155,15 @@ If API authentication is enabled, use:
 curl http://localhost:3000/ready \
   -H "x-client-id: ops-client" \
   -H "x-api-key: replace-with-your-shared-secret"
+```
+
+For HMAC-signed readiness requests, send:
+
+```bash
+curl http://localhost:3000/ready \
+  -H "x-client-id: ops-client" \
+  -H "x-timestamp: <unix-ms>" \
+  -H "x-signature: <hex-hmac-sha256>"
 ```
 
 4. Inspect supported healthcare use cases:
@@ -253,11 +267,33 @@ curl http://localhost:3000/ready
 When API authentication is enabled, confirm unauthenticated readiness calls fail with `401` and authenticated calls report:
 
 - `apiAuthenticationRequired`
+- `apiAuthenticationMode`
 - `configuredApiClientCount`
 - `securityHeadersEnabled`
 - `trustProxy`
 
+15. If CORS is enabled, verify an allowed preflight request succeeds:
+
+```bash
+curl -X OPTIONS http://localhost:3000/ready \
+  -H "Origin: https://ops.example.com"
+```
+
+16. If rate limiting is tightened for testing, verify repeated requests return `429`:
+
+```bash
+for i in 1 2 3; do curl -i http://localhost:3000/health; done
+```
+
 ## Production Notes
+
+- Set `REQUIRE_API_AUTHENTICATION=true` and provide at least one `API_CLIENT_KEYS` entry before production deployment.
+- Prefer `API_AUTHENTICATION_MODE=hmac-signature` over plain shared-key mode when you control both client and server implementations.
+- Keep `ALLOW_MOCK_OPENAI_IN_PRODUCTION=false` unless you are deliberately running a non-production-like environment.
+- Set `TRUST_PROXY=true` only when the service is actually behind a trusted reverse proxy or load balancer.
+- Keep `CORS_ENABLED=false` unless you explicitly need browser access, and then allowlist only the exact origins that need it.
+- The current rate limiter is in-memory and per-instance. It is suitable for a single process, but not a final multi-instance production topology.
+- `/health` remains public for liveness checks; other endpoints can be protected with machine credentials.
 
 - Set `REQUIRE_API_AUTHENTICATION=true` and provide at least one `API_CLIENT_KEYS` entry before production deployment.
 - Keep `ALLOW_MOCK_OPENAI_IN_PRODUCTION=false` unless you are deliberately running a non-production-like environment.

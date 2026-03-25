@@ -98,3 +98,13 @@
   - Start the next planned healthcare-platform phase in the sibling repo even though the current shell cwd is elsewhere.
   - Add production-facing API authentication and deployment hardening rather than deeper feature work.
   - Keep following the repo workflow automatically by updating roadmap, phase docs, and prompt log in the same commit.
+
+## Phase 9
+
+- Date: 2026-03-25
+- Commit label: `Phase 9 perimeter controls and machine auth`
+- User prompts:
+  - "lets do that"
+- Working interpretation:
+  - Continue directly into the next hardening phase without re-establishing repo workflow.
+  - Add rate limiting, explicit CORS policy handling, and a stronger machine-to-machine auth mode than shared API keys alone.

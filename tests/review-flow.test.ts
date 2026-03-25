@@ -22,11 +22,18 @@ function createConfig(): RuntimeConfig {
     persistenceDir,
     authorizedReviewerIds: ['reviewer-1', 'supervisor-1'],
     requireApiAuthentication: false,
+    apiAuthenticationMode: 'shared-key',
     apiClients: [],
     allowMockOpenAiInProduction: false,
     trustProxy: false,
     securityHeadersEnabled: true,
     hstsMaxAgeSeconds: 15552000,
+    rateLimitingEnabled: true,
+    rateLimitWindowMs: 60000,
+    rateLimitMaxRequests: 120,
+    corsEnabled: false,
+    corsAllowedOrigins: [],
+    maxRequestSignatureAgeSeconds: 300,
   };
 }
 

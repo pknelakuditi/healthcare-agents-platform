@@ -1,3 +1,4 @@
+import { createHash, createHmac } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../apps/api/src/app.js';
 import type { RuntimeConfig } from '../packages/config/src/index.js';
@@ -15,11 +16,18 @@ const config: RuntimeConfig = {
   persistenceDir: '.runtime/test-api',
   authorizedReviewerIds: ['supervisor-1', 'reviewer-1'],
   requireApiAuthentication: false,
+  apiAuthenticationMode: 'shared-key',
   apiClients: [],
   allowMockOpenAiInProduction: false,
   trustProxy: false,
   securityHeadersEnabled: true,
   hstsMaxAgeSeconds: 15552000,
+  rateLimitingEnabled: true,
+  rateLimitWindowMs: 60000,
+  rateLimitMaxRequests: 120,
+  corsEnabled: false,
+  corsAllowedOrigins: [],
+  maxRequestSignatureAgeSeconds: 300,
 };
 
 const appsToClose: ReturnType<typeof buildApp>[] = [];
@@ -27,6 +35,19 @@ const appsToClose: ReturnType<typeof buildApp>[] = [];
 afterEach(async () => {
   await Promise.all(appsToClose.splice(0).map((app) => app.close()));
 });
+
+function createRequestSignature(input: {
+  method: string;
+  path: string;
+  body?: unknown;
+  secret: string;
+  timestamp: string;
+}): string {
+  const bodyPayload = input.body === undefined ? '' : JSON.stringify(input.body);
+  const bodyDigest = createHash('sha256').update(bodyPayload).digest('hex');
+  const payload = [input.method.toUpperCase(), input.path, input.timestamp, bodyDigest].join('\n');
+  return createHmac('sha256', input.secret).update(payload).digest('hex');
+}
 
 describe('api', () => {
   it('returns health status', async () => {
@@ -82,9 +103,108 @@ describe('api', () => {
     expect(response.json()).toMatchObject({
       status: 'ready',
       apiAuthenticationRequired: true,
+      apiAuthenticationMode: 'shared-key',
       configuredApiClientCount: 1,
       securityHeadersEnabled: true,
     });
+  });
+
+  it('accepts HMAC-signed requests on protected routes', async () => {
+    const timestamp = String(Date.now());
+    const app = buildApp({
+      ...config,
+      requireApiAuthentication: true,
+      apiAuthenticationMode: 'hmac-signature',
+      apiClients: [{ clientId: 'signed-client', apiKey: 'super-secret-signing-key' }],
+    });
+    appsToClose.push(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ready',
+      headers: {
+        'x-client-id': 'signed-client',
+        'x-timestamp': timestamp,
+        'x-signature': createRequestSignature({
+          method: 'GET',
+          path: '/ready',
+          secret: 'super-secret-signing-key',
+          timestamp,
+        }),
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      status: 'ready',
+      apiAuthenticationMode: 'hmac-signature',
+    });
+  });
+
+  it('returns 429 when the fixed-window rate limit is exceeded', async () => {
+    const app = buildApp({
+      ...config,
+      rateLimitMaxRequests: 1,
+      rateLimitWindowMs: 60000,
+    });
+    appsToClose.push(app);
+
+    const firstResponse = await app.inject({
+      method: 'GET',
+      url: '/health',
+      remoteAddress: '10.0.0.10',
+    });
+
+    const secondResponse = await app.inject({
+      method: 'GET',
+      url: '/health',
+      remoteAddress: '10.0.0.10',
+    });
+
+    expect(firstResponse.statusCode).toBe(200);
+    expect(secondResponse.statusCode).toBe(429);
+    expect(secondResponse.json()).toEqual({ error: 'rate_limit_exceeded' });
+    expect(secondResponse.headers['retry-after']).toBeDefined();
+  });
+
+  it('handles allowed CORS preflight requests', async () => {
+    const app = buildApp({
+      ...config,
+      corsEnabled: true,
+      corsAllowedOrigins: ['https://ops.example.com'],
+    });
+    appsToClose.push(app);
+
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/ready',
+      headers: {
+        origin: 'https://ops.example.com',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe('https://ops.example.com');
+  });
+
+  it('rejects disallowed origins when CORS is enabled', async () => {
+    const app = buildApp({
+      ...config,
+      corsEnabled: true,
+      corsAllowedOrigins: ['https://ops.example.com'],
+    });
+    appsToClose.push(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: {
+        origin: 'https://evil.example.com',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: 'origin_not_allowed' });
   });
 
   it('returns orchestration output for safe reads', async () => {

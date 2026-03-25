@@ -14,8 +14,11 @@ app
       {
         address,
         apiAuthenticationRequired: config.requireApiAuthentication,
+        apiAuthenticationMode: config.apiAuthenticationMode,
         configuredApiClientCount: config.apiClients.length,
         trustProxy: config.trustProxy,
+        rateLimitingEnabled: config.rateLimitingEnabled,
+        corsEnabled: config.corsEnabled,
         enableMockOpenAi: config.enableMockOpenAi,
       },
       'API started',

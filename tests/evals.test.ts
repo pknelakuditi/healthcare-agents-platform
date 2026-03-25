@@ -15,11 +15,18 @@ const config: RuntimeConfig = {
   persistenceDir: '.runtime/test-evals',
   authorizedReviewerIds: ['reviewer-1'],
   requireApiAuthentication: false,
+  apiAuthenticationMode: 'shared-key',
   apiClients: [],
   allowMockOpenAiInProduction: false,
   trustProxy: false,
   securityHeadersEnabled: true,
   hstsMaxAgeSeconds: 15552000,
+  rateLimitingEnabled: true,
+  rateLimitWindowMs: 60000,
+  rateLimitMaxRequests: 120,
+  corsEnabled: false,
+  corsAllowedOrigins: [],
+  maxRequestSignatureAgeSeconds: 300,
 };
 
 describe('runEvaluations', () => {

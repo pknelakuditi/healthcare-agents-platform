@@ -78,6 +78,18 @@ const nonNegativeIntegerFromEnv = z.preprocess((value) => {
   return value;
 }, z.number().int().nonnegative());
 
+const positiveIntegerFromEnv = z.preprocess((value) => {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return Number(value);
+  }
+
+  return value;
+}, z.number().int().positive());
+
 export type ApiClientCredential = {
   clientId: string;
   apiKey: string;
@@ -96,11 +108,18 @@ const runtimeConfigSchema = z.object({
   persistenceDir: z.string().min(1).default('.runtime'),
   authorizedReviewerIds: stringArrayFromEnv.default(['supervisor-1', 'reviewer-1']),
   requireApiAuthentication: booleanFromEnv.default(false),
+  apiAuthenticationMode: z.enum(['shared-key', 'hmac-signature']).default('shared-key'),
   apiClients: apiClientsFromEnv.default([]),
   allowMockOpenAiInProduction: booleanFromEnv.default(false),
   trustProxy: booleanFromEnv.default(false),
   securityHeadersEnabled: booleanFromEnv.default(true),
   hstsMaxAgeSeconds: nonNegativeIntegerFromEnv.default(15552000),
+  rateLimitingEnabled: booleanFromEnv.default(true),
+  rateLimitWindowMs: positiveIntegerFromEnv.default(60000),
+  rateLimitMaxRequests: positiveIntegerFromEnv.default(120),
+  corsEnabled: booleanFromEnv.default(false),
+  corsAllowedOrigins: stringArrayFromEnv.default([]),
+  maxRequestSignatureAgeSeconds: positiveIntegerFromEnv.default(300),
 });
 
 export type RuntimeConfig = z.infer<typeof runtimeConfigSchema>;
@@ -122,17 +141,32 @@ function normalizeEnv(source: NodeJS.ProcessEnv): Record<string, unknown> {
     authorizedReviewerIds: source.AUTHORIZED_REVIEWER_IDS,
     requireApiAuthentication:
       source.REQUIRE_API_AUTHENTICATION ?? (source.NODE_ENV === 'production' ? 'true' : 'false'),
+    apiAuthenticationMode: source.API_AUTHENTICATION_MODE,
     apiClients: source.API_CLIENT_KEYS,
     allowMockOpenAiInProduction: source.ALLOW_MOCK_OPENAI_IN_PRODUCTION,
     trustProxy: source.TRUST_PROXY,
     securityHeadersEnabled: source.SECURITY_HEADERS_ENABLED,
     hstsMaxAgeSeconds: source.HSTS_MAX_AGE_SECONDS,
+    rateLimitingEnabled: source.RATE_LIMITING_ENABLED,
+    rateLimitWindowMs: source.RATE_LIMIT_WINDOW_MS,
+    rateLimitMaxRequests: source.RATE_LIMIT_MAX_REQUESTS,
+    corsEnabled: source.CORS_ENABLED,
+    corsAllowedOrigins: source.CORS_ALLOWED_ORIGINS,
+    maxRequestSignatureAgeSeconds: source.MAX_REQUEST_SIGNATURE_AGE_SECONDS,
   };
 }
 
 function validateRuntimeConfig(config: RuntimeConfig): RuntimeConfig {
   if (config.requireApiAuthentication && config.apiClients.length === 0) {
     throw new Error('API authentication is enabled, but API_CLIENT_KEYS is empty.');
+  }
+
+  if (config.apiAuthenticationMode === 'hmac-signature' && !config.requireApiAuthentication) {
+    throw new Error('HMAC request signatures require API authentication to remain enabled.');
+  }
+
+  if (config.corsEnabled && config.corsAllowedOrigins.length === 0) {
+    throw new Error('CORS is enabled, but CORS_ALLOWED_ORIGINS is empty.');
   }
 
   if (config.nodeEnv === 'production' && !config.requireApiAuthentication) {

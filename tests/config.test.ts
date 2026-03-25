@@ -14,6 +14,9 @@ describe('loadRuntimeConfig', () => {
     expect(config.requireApiAuthentication).toBe(false);
     expect(config.apiClients).toEqual([]);
     expect(config.securityHeadersEnabled).toBe(true);
+    expect(config.apiAuthenticationMode).toBe('shared-key');
+    expect(config.rateLimitingEnabled).toBe(true);
+    expect(config.corsEnabled).toBe(false);
   });
 
   it('parses booleans and numbers from env strings', () => {
@@ -25,9 +28,15 @@ describe('loadRuntimeConfig', () => {
       OPENAI_API_KEY: 'openai-production-key',
       ALLOW_PHI_WITH_OPENAI: 'true',
       AUTHORIZED_REVIEWER_IDS: 'alice,bob',
+      API_AUTHENTICATION_MODE: 'hmac-signature',
       API_CLIENT_KEYS: 'ops-client:super-secret-auth-key',
       TRUST_PROXY: 'true',
       HSTS_MAX_AGE_SECONDS: '86400',
+      RATE_LIMIT_WINDOW_MS: '30000',
+      RATE_LIMIT_MAX_REQUESTS: '50',
+      CORS_ENABLED: 'true',
+      CORS_ALLOWED_ORIGINS: 'https://ops.example.com,https://admin.example.com',
+      MAX_REQUEST_SIGNATURE_AGE_SECONDS: '120',
     });
 
     expect(config.apiPort).toBe(4100);
@@ -36,11 +45,20 @@ describe('loadRuntimeConfig', () => {
     expect(config.allowPhiWithOpenAi).toBe(true);
     expect(config.authorizedReviewerIds).toEqual(['alice', 'bob']);
     expect(config.requireApiAuthentication).toBe(true);
+    expect(config.apiAuthenticationMode).toBe('hmac-signature');
     expect(config.apiClients).toEqual([
       { clientId: 'ops-client', apiKey: 'super-secret-auth-key' },
     ]);
     expect(config.trustProxy).toBe(true);
     expect(config.hstsMaxAgeSeconds).toBe(86400);
+    expect(config.rateLimitWindowMs).toBe(30000);
+    expect(config.rateLimitMaxRequests).toBe(50);
+    expect(config.corsEnabled).toBe(true);
+    expect(config.corsAllowedOrigins).toEqual([
+      'https://ops.example.com',
+      'https://admin.example.com',
+    ]);
+    expect(config.maxRequestSignatureAgeSeconds).toBe(120);
   });
 
   it('rejects production mode when API authentication would be disabled', () => {
@@ -62,5 +80,14 @@ describe('loadRuntimeConfig', () => {
         ENABLE_MOCK_OPENAI: 'true',
       }),
     ).toThrow('Production mode cannot run with ENABLE_MOCK_OPENAI=true');
+  });
+
+  it('rejects enabled CORS without allowed origins', () => {
+    expect(() =>
+      loadRuntimeConfig({
+        NODE_ENV: 'test',
+        CORS_ENABLED: 'true',
+      }),
+    ).toThrow('CORS is enabled, but CORS_ALLOWED_ORIGINS is empty.');
   });
 });

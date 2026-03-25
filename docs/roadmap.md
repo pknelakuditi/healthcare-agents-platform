@@ -29,10 +29,11 @@ Build a production-oriented healthcare agents platform with:
 - Phase 5: Integration boundaries and reviewer authz. Commit `d1fdcc2`
 - Phase 6: Evaluations and evidence packaging. Commit `49eaa23`
 - Phase 7: Persistence boundary and operational hardening. Commit `e0da6d2`
+- Phase 8: Deployment and auth hardening. Commit `99a6bcc`
 
 ## Current Phase
 
-- Phase 8: Deployment and auth hardening
+- Phase 9: Perimeter controls and machine auth
 - Status: in progress
 
 ## Planned Phases
@@ -73,6 +74,12 @@ Build a production-oriented healthcare agents platform with:
 - Introduce stronger machine-to-machine authentication beyond shared API keys
 - Add deployment manifests and environment-specific runbooks
 
+### Phase 10
+
+- move rate limiting and replay protection to a shared external store
+- add deployment-oriented ingress and gateway runbooks
+- strengthen actor identity propagation and downstream authorization context
+
 ## Cross-Cutting Requirements
 
 - Every phase must update:
@@ -108,3 +115,9 @@ Build a production-oriented healthcare agents platform with:
 - Verify protected routes return `401` without API client credentials when auth is enabled
 - Verify valid API client credentials succeed on protected routes
 - Verify readiness exposes API auth and security-header posture for operators
+
+## Phase 9 Verification Preview
+
+- Verify allowed origins receive successful preflight handling while disallowed origins fail cleanly
+- Verify repeated requests return `429` with retry guidance when the limit is exceeded
+- Verify HMAC-signed readiness requests succeed in signed-request mode
