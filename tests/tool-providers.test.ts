@@ -15,6 +15,7 @@ describe('mock tool providers', () => {
 
     expect(result.steps.some((step) => step.stage === 'document_ingestion')).toBe(true);
     expect(result.artifacts.some((artifact) => artifact.kind === 'summary')).toBe(true);
+    expect(result.artifacts.some((artifact) => artifact.kind === 'evidence-package')).toBe(true);
   });
 
   it('produces FHIR artifacts for requested resources', () => {

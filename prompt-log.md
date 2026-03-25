@@ -67,3 +67,13 @@
 - Working interpretation:
   - Start the next planned phase automatically under the repo workflow.
   - Add integration boundary abstractions and reviewer access control.
+
+## Phase 6
+
+- Date: 2026-03-25
+- Commit label: `Phase 6 evaluations and evidence packaging`
+- User prompts:
+  - "ye"
+- Working interpretation:
+  - Start the next planned phase automatically.
+  - Add evaluation datasets, scoring, and evidence/citation packaging for document workflows.

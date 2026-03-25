@@ -36,6 +36,7 @@ describe('routeAgentTask', () => {
     expect(result.plan.toolPlans[0]?.toolset).toBe('documents');
     expect(result.execution.status).toBe('completed');
     expect(result.execution.artifacts.some((artifact) => artifact.kind === 'summary')).toBe(true);
+    expect(result.execution.artifacts.some((artifact) => artifact.kind === 'evidence-package')).toBe(true);
   });
 
   it('routes writes into human review', () => {

@@ -9,6 +9,7 @@ import { listUseCaseDefinitions } from '../../../packages/use-cases/src/index.js
 import { FileReviewStore } from '../../../packages/review/src/index.js';
 import { ReviewQueueService } from '../../../packages/review/src/service.js';
 import { ReviewerAuthorizationError } from '../../../packages/auth/src/index.js';
+import { runEvaluations } from '../../../packages/evals/src/index.js';
 
 const orchestrateBodySchema = z.object({
   requestId: z.string().min(1),
@@ -68,6 +69,10 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
       provider: 'mock-fhir',
       supports: ['search', 'read'],
     },
+  }));
+
+  app.get('/v1/evals/summary', async () => ({
+    summary: runEvaluations(config),
   }));
 
   app.get('/v1/audit/events', async () => ({

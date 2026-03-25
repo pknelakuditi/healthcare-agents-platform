@@ -72,6 +72,24 @@ export function runMockDocumentWorkflow(
         citations: references.map((reference) => reference.documentId),
       },
     });
+    artifacts.push({
+      kind: 'evidence-package',
+      id: `${task.requestId}:evidence-package`,
+      label: 'Mock evidence package',
+      data: {
+        evidence: references.map((reference) => ({
+          citationId: reference.documentId,
+          sourceType: reference.sourceType,
+          description: reference.description,
+        })),
+        summarySupport: [
+          {
+            claim: 'Document bundle was ingested successfully.',
+            citationIds: references.map((reference) => reference.documentId),
+          },
+        ],
+      },
+    });
   }
 
   if (task.useCase === 'intake') {

@@ -26,10 +26,11 @@ Build a production-oriented healthcare agents platform with:
 - Phase 2: Use-case and tool modeling. Commit `d7852f8`
 - Phase 3: Mock execution adapters. Commit `e85bfef`
 - Phase 4: Review queue and persistence. Commit `7d1fe53`
+- Phase 5: Integration boundaries and reviewer authz. Commit `d1fdcc2`
 
 ## Current Phase
 
-- Phase 5: Integration boundaries and access control
+- Phase 6: Evaluations and evidence packaging
 - Status: in progress
 
 ## Planned Phases
@@ -47,6 +48,7 @@ Build a production-oriented healthcare agents platform with:
 - Add evaluation datasets, golden outputs, and regression scoring
 - Add citations and evidence packaging for document workflows
 - Add richer failure handling and retry semantics
+- Add explicit API visibility for eval runs and evidence-bearing outputs
 
 ### Phase 7
 
@@ -71,3 +73,9 @@ Build a production-oriented healthcare agents platform with:
 - Verify reviewer approval requires an allowed reviewer id
 - Verify unauthorized approval attempts fail cleanly
 - Verify orchestration continues to use mock providers through the new adapter interfaces
+
+## Phase 6 Verification Preview
+
+- Verify eval runs report pass/fail summaries against golden cases
+- Verify `document-summary` returns evidence packages with citations
+- Verify eval endpoints expose current mock quality gates

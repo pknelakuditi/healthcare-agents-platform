@@ -120,6 +120,22 @@ describe('api', () => {
     expect(body.fhir.supports).toContain('read');
   });
 
+  it('returns evaluation summary', async () => {
+    const app = buildApp(config);
+    appsToClose.push(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/evals/summary',
+    });
+
+    const body = response.json();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.summary.total).toBeGreaterThan(0);
+    expect(body.summary.failed).toBe(0);
+  });
+
   it('persists audit events and review requests for gated write flows', async () => {
     const app = buildApp(config);
     appsToClose.push(app);

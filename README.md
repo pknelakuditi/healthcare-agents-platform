@@ -11,6 +11,7 @@ Phase 4 adds operational control for write-side workflows:
 - Mock tooling capability endpoint for document and FHIR adapters
 - Audit event and review queue endpoints
 - Reviewer authorization on approval and rejection endpoints
+- Eval summary endpoint and in-repo golden cases
 - Worker and eval-runner entrypoints
 - Shared configuration, logging, audit, orchestration, OpenAI, safety, use-case, and tool-contract packages
 - Mock execution for `document-summary` and `intake`
@@ -35,6 +36,7 @@ packages/
   review/          Human review queue and durable review storage
   auth/            Reviewer authorization checks
   integrations/    Provider registry for document and FHIR adapters
+  evals/           Golden cases and scoring logic
   safety/          Policy and human-approval gates
   tools/           Typed contracts and mock providers for document and FHIR toolsets
   use-cases/       Healthcare workflow catalog
@@ -218,6 +220,14 @@ An approval with a reviewer id outside `AUTHORIZED_REVIEWER_IDS` should return `
 ```bash
 curl http://localhost:3000/v1/audit/events
 ```
+
+12. Inspect the current eval summary:
+
+```bash
+curl http://localhost:3000/v1/evals/summary
+```
+
+13. For `document-summary`, inspect the returned `evidence-package` artifact in the orchestration response.
 
 ## Production Notes
 

@@ -54,7 +54,7 @@ export interface WorkflowPlan {
 }
 
 export interface WorkflowArtifact {
-  kind: 'document' | 'fhir' | 'summary' | 'classification';
+  kind: 'document' | 'fhir' | 'summary' | 'classification' | 'evidence-package';
   id: string;
   label: string;
   data: Record<string, unknown>;
