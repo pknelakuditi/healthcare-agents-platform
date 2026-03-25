@@ -139,3 +139,14 @@
 - Working interpretation:
   - Persist a repo-local workflow rule that routine `git add` and `git commit -m` operations are pre-approved for this repository.
   - Keep asking before riskier git operations such as rebases, resets, force-pushes, or destructive commands.
+
+## Phase 10A
+
+- Date: 2026-03-25
+- Commit label: `Phase 10A manual API testing assets`
+- User prompts:
+  - "$phase-planner can you create a postman collection or equivalent solution that i can use to test manually for this api"
+- Working interpretation:
+  - Add a Postman-compatible manual test collection for the existing API surface instead of leaving manual verification as curl snippets only.
+  - Include a local environment and scripts for the platform's shared-key, HMAC, gateway, orchestration, and review flows.
+  - Keep the repo planning files aligned with this support phase.

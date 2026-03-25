@@ -146,6 +146,23 @@ npm run test:watch
 
 ## Test Features Manually
 
+For a reusable manual-testing workflow, import:
+
+- `postman/healthcare-agents-platform.postman_collection.json`
+- `postman/local.postman_environment.json`
+
+The collection includes:
+
+- health and readiness requests
+- shared-key, HMAC, and gateway-authenticated readiness variants
+- read, rejected, and review-gated orchestration examples
+- review list, lookup, approve, and reject flows
+- audit and eval summary requests
+
+The collection stores `reviewId` automatically after the gated write request and can also refresh it from `GET /v1/reviews`. Update the environment variables for your local auth settings before running the authenticated requests.
+
+The curl commands below remain available as a lightweight fallback.
+
 1. Start the API with `npm run dev:api`.
 2. Check liveness:
 

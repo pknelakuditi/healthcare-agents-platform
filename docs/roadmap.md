@@ -32,6 +32,7 @@ Build a production-oriented healthcare agents platform with:
 - Phase 8: Deployment and auth hardening. Commit `99a6bcc`
 - Phase 9: Perimeter controls and machine auth. Commit `171d20c`
 - Phase 10: Externalized perimeter state and gateway auth. Commit `f199b6f`
+- Phase 10A: Manual API testing assets. Commit pending.
 
 ## Current Phase
 
@@ -123,3 +124,9 @@ Build a production-oriented healthcare agents platform with:
 - Verify deployment manifests start all required services with the documented config
 - Verify operational runbooks cover deploy, rollback, and secret rotation paths
 - Verify production readiness checks align with the deployment documentation
+
+## Phase 10A Verification Preview
+
+- Verify the Postman collection imports cleanly with the bundled local environment
+- Verify the collection covers the current health, readiness, orchestration, review, audit, and eval endpoints
+- Verify manual testers can exercise shared-key, HMAC, and gateway-asserted auth flows without rewriting requests

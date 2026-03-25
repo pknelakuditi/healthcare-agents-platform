@@ -1,0 +1,355 @@
+{
+  "info": {
+    "_postman_id": "80f7f53d-1e91-4fb0-97b8-a548cb9afd43",
+    "name": "Healthcare Agents Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Manual API smoke tests for the healthcare agents platform."
+  },
+  "variable": [
+    {
+      "key": "contentType",
+      "value": "application/json"
+    }
+  ],
+  "item": [
+    {
+      "name": "Platform",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health",
+            "description": "Public liveness check."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('health is ok', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "  pm.expect(body.service).to.eql('api');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ready",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ready",
+            "description": "Unauthenticated readiness check. This should return 401 when API auth is enabled."
+          }
+        },
+        {
+          "name": "Ready - Shared Key",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-client-id",
+                "value": "{{sharedKeyClientId}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{sharedKeyApiKey}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ready",
+            "description": "Readiness request for shared-key mode."
+          }
+        },
+        {
+          "name": "Ready - HMAC Signed",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const secret = pm.environment.get('hmacApiKey');",
+                  "const clientId = pm.environment.get('hmacClientId');",
+                  "if (!secret || !clientId) {",
+                  "  throw new Error('Set hmacClientId and hmacApiKey in the environment before sending this request.');",
+                  "}",
+                  "const timestamp = Date.now().toString();",
+                  "const nonce = ['nonce', timestamp, Math.floor(Math.random() * 1000000)].join('-');",
+                  "const path = pm.request.url.getPathWithQuery();",
+                  "const bodyRaw = pm.request.body && pm.request.body.raw ? pm.request.body.raw : '';",
+                  "const bodyDigest = CryptoJS.SHA256(bodyRaw).toString(CryptoJS.enc.Hex);",
+                  "const payload = [pm.request.method.toUpperCase(), path, timestamp, nonce, bodyDigest].join('\\n');",
+                  "const signature = CryptoJS.HmacSHA256(payload, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.request.headers.upsert({ key: 'x-client-id', value: clientId });",
+                  "pm.request.headers.upsert({ key: 'x-timestamp', value: timestamp });",
+                  "pm.request.headers.upsert({ key: 'x-nonce', value: nonce });",
+                  "pm.request.headers.upsert({ key: 'x-signature', value: signature });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ready",
+            "description": "Readiness request for HMAC mode. Headers are computed automatically from environment variables."
+          }
+        },
+        {
+          "name": "Ready - Gateway Asserted",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-gateway-auth",
+                "value": "{{gatewaySharedSecret}}"
+              },
+              {
+                "key": "x-authenticated-client-id",
+                "value": "{{gatewayClientId}}"
+              },
+              {
+                "key": "x-authenticated-user-id",
+                "value": "{{gatewayUserId}}"
+              },
+              {
+                "key": "x-authenticated-scopes",
+                "value": "{{gatewayScopes}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ready",
+            "description": "Readiness request for trusted gateway deployments."
+          }
+        },
+        {
+          "name": "Use Cases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/use-cases"
+          }
+        },
+        {
+          "name": "Mock Tool Capabilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/tooling/mock-capabilities"
+          }
+        },
+        {
+          "name": "Eval Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/evals/summary"
+          }
+        },
+        {
+          "name": "Audit Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/audit/events"
+          }
+        },
+        {
+          "name": "Ready - CORS Preflight",
+          "request": {
+            "method": "OPTIONS",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{corsOrigin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ready",
+            "description": "Use when CORS is enabled to verify an allowed origin."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orchestration",
+      "item": [
+        {
+          "name": "Document Summary - Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"demo-read-1\",\n  \"userId\": \"{{requestUserId}}\",\n  \"useCase\": \"document-summary\",\n  \"actionType\": \"read\",\n  \"containsPhi\": false,\n  \"message\": \"Summarize the uploaded prior authorization packet.\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/orchestrate"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('read orchestration succeeds', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.result.decision.status).to.eql('accepted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Intake - Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"demo-intake-1\",\n  \"userId\": \"{{requestUserId}}\",\n  \"useCase\": \"intake\",\n  \"actionType\": \"read\",\n  \"containsPhi\": false,\n  \"message\": \"Normalize the intake packet and verify eligibility context.\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/orchestrate"
+          }
+        },
+        {
+          "name": "Document Summary - PHI Rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"demo-phi-1\",\n  \"userId\": \"{{requestUserId}}\",\n  \"useCase\": \"document-summary\",\n  \"actionType\": \"read\",\n  \"containsPhi\": true,\n  \"message\": \"Summarize the chart.\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/orchestrate"
+          }
+        },
+        {
+          "name": "Patient Outreach - Write Held For Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"demo-write-1\",\n  \"userId\": \"{{requestUserId}}\",\n  \"useCase\": \"patient-outreach\",\n  \"actionType\": \"write\",\n  \"containsPhi\": false,\n  \"message\": \"Send a reminder to the patient.\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/orchestrate"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('write request is queued for review', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.result.decision.status).to.eql('held_for_human_review');",
+                  "  if (body.reviewRequest && body.reviewRequest.reviewId) {",
+                  "    pm.environment.set('reviewId', body.reviewRequest.reviewId);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "List Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/reviews"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (Array.isArray(body.reviews) && body.reviews.length > 0) {",
+                  "  pm.environment.set('reviewId', body.reviews[0].reviewId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Review By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/reviews/{{reviewId}}"
+          }
+        },
+        {
+          "name": "Approve Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewerId\": \"{{reviewerId}}\",\n  \"comments\": \"{{approvalComments}}\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/reviews/{{reviewId}}/approve"
+          }
+        },
+        {
+          "name": "Reject Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewerId\": \"{{reviewerId}}\",\n  \"comments\": \"{{rejectionComments}}\"\n}"
+            },
+            "url": "{{baseUrl}}/v1/reviews/{{reviewId}}/reject"
+          }
+        }
+      ]
+    }
+  ]
+}
