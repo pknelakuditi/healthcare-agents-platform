@@ -1,11 +1,11 @@
 import type { AgentTask, WorkflowExecution, WorkflowStepResult } from '../../agents/shared/src/index.js';
 import type { RuntimeConfig } from '../../config/src/index.js';
-import { runMockDocumentWorkflow } from '../../tools/documents/src/index.js';
-import { runMockFhirWorkflow } from '../../tools/fhir/src/index.js';
+import { createIntegrationRegistry } from '../../integrations/src/index.js';
 import { getUseCaseDefinition } from '../../use-cases/src/index.js';
 
-export function executeWorkflow(task: AgentTask, _config: RuntimeConfig): WorkflowExecution {
+export function executeWorkflow(task: AgentTask, config: RuntimeConfig): WorkflowExecution {
   const definition = getUseCaseDefinition(task.useCase);
+  const integrations = createIntegrationRegistry(config);
 
   if (!definition.autoExecutable || task.actionType !== 'read') {
     if (!(definition.autoExecutable && task.useCase === 'patient-outreach' && task.actionType === 'write')) {
@@ -19,10 +19,10 @@ export function executeWorkflow(task: AgentTask, _config: RuntimeConfig): Workfl
   }
 
   if (task.useCase === 'patient-outreach') {
-    const documentExecution = runMockDocumentWorkflow(task, {
+    const documentExecution = integrations.documentProvider.execute(task, {
       operation: 'generate-letter',
     });
-    const fhirExecution = runMockFhirWorkflow(task, [
+    const fhirExecution = integrations.fhirProvider.execute(task, [
       {
         resourceType: 'Patient',
         operation: 'read',
@@ -51,10 +51,10 @@ export function executeWorkflow(task: AgentTask, _config: RuntimeConfig): Workfl
     };
   }
 
-  const documentExecution = runMockDocumentWorkflow(task, {
+  const documentExecution = integrations.documentProvider.execute(task, {
     operation: definition.documentOperations[0],
   });
-  const fhirExecution = runMockFhirWorkflow(
+  const fhirExecution = integrations.fhirProvider.execute(
     task,
     definition.fhirResources.map((resourceType) => ({
       resourceType,

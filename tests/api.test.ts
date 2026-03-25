@@ -13,6 +13,7 @@ const config: RuntimeConfig = {
   requireHumanApprovalForWrites: true,
   enableMockOpenAi: true,
   persistenceDir: '.runtime/test-api',
+  authorizedReviewerIds: ['supervisor-1', 'reviewer-1'],
 };
 
 const appsToClose: ReturnType<typeof buildApp>[] = [];
@@ -115,6 +116,7 @@ describe('api', () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.documents.mode).toBe('mock');
+    expect(body.documents.provider).toBe('mock-documents');
     expect(body.fhir.supports).toContain('read');
   });
 
@@ -150,5 +152,35 @@ describe('api', () => {
 
     expect(reviewsResponse.json().reviews.length).toBeGreaterThan(0);
     expect(auditResponse.json().events.length).toBeGreaterThan(0);
+  });
+
+  it('rejects unauthorized reviewers on approval endpoints', async () => {
+    const app = buildApp(config);
+    appsToClose.push(app);
+
+    const orchestrationResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/orchestrate',
+      payload: {
+        requestId: 'req-review-authz',
+        userId: 'user-1',
+        useCase: 'patient-outreach',
+        actionType: 'write',
+        containsPhi: false,
+        message: 'Send a reminder message.',
+      },
+    });
+
+    const reviewId = orchestrationResponse.json().reviewRequest.reviewId;
+    const approvalResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/reviews/${reviewId}/approve`,
+      payload: {
+        reviewerId: 'unauthorized-user',
+        comments: 'Attempting approval.',
+      },
+    });
+
+    expect(approvalResponse.statusCode).toBe(403);
   });
 });

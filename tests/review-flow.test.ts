@@ -20,6 +20,7 @@ function createConfig(): RuntimeConfig {
     requireHumanApprovalForWrites: true,
     enableMockOpenAi: true,
     persistenceDir,
+    authorizedReviewerIds: ['reviewer-1', 'supervisor-1'],
   };
 }
 
@@ -96,5 +97,36 @@ describe('review flow', () => {
     expect(body.review.status).toBe('approved');
     expect(body.result.execution.status).toBe('completed');
     expect(body.result.execution.artifacts.some((artifact: { id: string }) => artifact.id.includes('outreach'))).toBe(true);
+  });
+
+  it('rejects review decisions from unauthorized reviewer ids', async () => {
+    const app = buildApp(createConfig());
+    appsToClose.push(app);
+
+    const orchestrationResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/orchestrate',
+      payload: {
+        requestId: 'write-3',
+        userId: 'ops-user',
+        useCase: 'patient-outreach',
+        actionType: 'write',
+        containsPhi: false,
+        message: 'Send a reminder to the patient.',
+      },
+    });
+
+    const reviewId = orchestrationResponse.json().reviewRequest.reviewId;
+
+    const rejectResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/reviews/${reviewId}/reject`,
+      payload: {
+        reviewerId: 'unauthorized-user',
+        comments: 'Attempting rejection.',
+      },
+    });
+
+    expect(rejectResponse.statusCode).toBe(403);
   });
 });

@@ -19,6 +19,21 @@ const booleanFromEnv = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
+const stringArrayFromEnv = z.preprocess((value) => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return value;
+}, z.array(z.string().min(1)));
+
 const runtimeConfigSchema = z.object({
   nodeEnv: z.enum(['development', 'test', 'production']).default('development'),
   logLevel: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
@@ -30,6 +45,7 @@ const runtimeConfigSchema = z.object({
   requireHumanApprovalForWrites: booleanFromEnv.default(true),
   enableMockOpenAi: booleanFromEnv.default(true),
   persistenceDir: z.string().min(1).default('.runtime'),
+  authorizedReviewerIds: stringArrayFromEnv.default(['supervisor-1', 'reviewer-1']),
 });
 
 export type RuntimeConfig = z.infer<typeof runtimeConfigSchema>;
@@ -48,6 +64,7 @@ function normalizeEnv(source: NodeJS.ProcessEnv): Record<string, unknown> {
     requireHumanApprovalForWrites: source.REQUIRE_HUMAN_APPROVAL_FOR_WRITES,
     enableMockOpenAi: source.ENABLE_MOCK_OPENAI,
     persistenceDir: source.PERSISTENCE_DIR,
+    authorizedReviewerIds: source.AUTHORIZED_REVIEWER_IDS,
   };
 }
 

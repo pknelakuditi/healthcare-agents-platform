@@ -13,6 +13,7 @@ const config: RuntimeConfig = {
   requireHumanApprovalForWrites: true,
   enableMockOpenAi: true,
   persistenceDir: '.runtime/test-orchestrator',
+  authorizedReviewerIds: ['reviewer-1'],
 };
 
 describe('routeAgentTask', () => {

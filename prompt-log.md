@@ -57,3 +57,13 @@
 - Working interpretation:
   - Add a durable roadmap, phase plan files, and workflow guidance directly in the repo.
   - Treat roadmap updates, phase doc updates, and prompt-log updates as required work for every future phase by default.
+
+## Phase 5
+
+- Date: 2026-03-25
+- Commit label: `Phase 5 integration boundaries and reviewer authz`
+- User prompts:
+  - "yes please"
+- Working interpretation:
+  - Start the next planned phase automatically under the repo workflow.
+  - Add integration boundary abstractions and reviewer access control.

@@ -30,7 +30,7 @@ Build a production-oriented healthcare agents platform with:
 ## Current Phase
 
 - Phase 5: Integration boundaries and access control
-- Status: planned
+- Status: in progress
 
 ## Planned Phases
 
@@ -39,6 +39,8 @@ Build a production-oriented healthcare agents platform with:
 - Add real integration boundaries for FHIR and document adapters
 - Add reviewer authentication and authorization checks
 - Separate operational roles for requesters and approvers
+- Add configuration-backed reviewer allowlists and actor roles
+- Keep mock providers as the default implementation behind the new interfaces
 
 ### Phase 6
 
@@ -63,3 +65,9 @@ Build a production-oriented healthcare agents platform with:
   - `npm test`
   - `npm run build`
 - Every phase should include manual verification notes for user-visible features.
+
+## Phase 5 Verification Preview
+
+- Verify reviewer approval requires an allowed reviewer id
+- Verify unauthorized approval attempts fail cleanly
+- Verify orchestration continues to use mock providers through the new adapter interfaces

@@ -1,5 +1,6 @@
 import type { AgentTask, WorkflowArtifact, WorkflowStepResult } from '../../../agents/shared/src/index.js';
 import type { FhirResourceType, FhirToolRequest } from './index.js';
+import type { FhirProvider } from './interfaces.js';
 
 function buildMockResources(resourceType: FhirResourceType, task: AgentTask): Record<string, unknown>[] {
   switch (resourceType) {
@@ -75,4 +76,12 @@ export function runMockFhirWorkflow(
     ],
     artifacts,
   };
+}
+
+export class MockFhirProvider implements FhirProvider {
+  readonly providerName = 'mock-fhir';
+
+  execute(task: AgentTask, requests: Partial<FhirToolRequest>[] = []): FhirExecutionResult {
+    return runMockFhirWorkflow(task, requests);
+  }
 }

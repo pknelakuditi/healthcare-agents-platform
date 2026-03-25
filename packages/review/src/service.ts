@@ -4,6 +4,7 @@ import { evaluateTaskPolicy } from '../../safety/src/index.js';
 import type { AgentTask, ReviewRequest } from '../../agents/shared/src/index.js';
 import { FileReviewStore } from './store.js';
 import { runWorkflow } from '../../orchestration/src/index.js';
+import { assertReviewerAuthorized } from '../../auth/src/index.js';
 
 export class ReviewQueueService {
   constructor(
@@ -28,6 +29,7 @@ export class ReviewQueueService {
   }
 
   approve(reviewId: string, reviewerId: string, comments: string) {
+    assertReviewerAuthorized(reviewerId, this.config);
     const review = this.reviewStore.decide(reviewId, 'approved', {
       reviewerId,
       decidedAt: new Date().toISOString(),
@@ -47,6 +49,7 @@ export class ReviewQueueService {
   }
 
   reject(reviewId: string, reviewerId: string, comments: string) {
+    assertReviewerAuthorized(reviewerId, this.config);
     const review = this.reviewStore.decide(reviewId, 'rejected', {
       reviewerId,
       decidedAt: new Date().toISOString(),

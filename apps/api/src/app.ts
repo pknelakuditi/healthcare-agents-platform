@@ -8,6 +8,7 @@ import { getOpenAiClientStatus } from '../../../packages/ai/openai/src/index.js'
 import { listUseCaseDefinitions } from '../../../packages/use-cases/src/index.js';
 import { FileReviewStore } from '../../../packages/review/src/index.js';
 import { ReviewQueueService } from '../../../packages/review/src/service.js';
+import { ReviewerAuthorizationError } from '../../../packages/auth/src/index.js';
 
 const orchestrateBodySchema = z.object({
   requestId: z.string().min(1),
@@ -49,6 +50,7 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
     status: 'ready',
     openAi: getOpenAiClientStatus(config),
     approvalsRequiredForWrites: config.requireHumanApprovalForWrites,
+    authorizedReviewerCount: config.authorizedReviewerIds.length,
   }));
 
   app.get('/v1/use-cases', async () => ({
@@ -58,10 +60,12 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
   app.get('/v1/tooling/mock-capabilities', async () => ({
     documents: {
       mode: 'mock',
+      provider: 'mock-documents',
       supports: ['ingest', 'extract', 'summarize', 'classify', 'generate-letter'],
     },
     fhir: {
       mode: 'mock',
+      provider: 'mock-fhir',
       supports: ['search', 'read'],
     },
   }));
@@ -151,7 +155,7 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
         auditEvent,
       };
     } catch (error) {
-      reply.code(400);
+      reply.code(error instanceof ReviewerAuthorizationError ? 403 : 400);
       return { error: error instanceof Error ? error.message : 'review_approval_failed' };
     }
   });
@@ -177,7 +181,7 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
         auditEvent,
       };
     } catch (error) {
-      reply.code(400);
+      reply.code(error instanceof ReviewerAuthorizationError ? 403 : 400);
       return { error: error instanceof Error ? error.message : 'review_rejection_failed' };
     }
   });

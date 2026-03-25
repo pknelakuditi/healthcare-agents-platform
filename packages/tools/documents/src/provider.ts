@@ -1,5 +1,6 @@
 import type { AgentTask, WorkflowArtifact, WorkflowStepResult } from '../../../agents/shared/src/index.js';
 import type { DocumentReference, DocumentToolRequest } from './index.js';
+import type { DocumentProvider } from './interfaces.js';
 
 function createDefaultReferences(task: AgentTask): DocumentReference[] {
   return [
@@ -102,4 +103,12 @@ export function runMockDocumentWorkflow(
     steps,
     artifacts,
   };
+}
+
+export class MockDocumentProvider implements DocumentProvider {
+  readonly providerName = 'mock-documents';
+
+  execute(task: AgentTask, request: Partial<DocumentToolRequest> = {}): DocumentExecutionResult {
+    return runMockDocumentWorkflow(task, request);
+  }
 }

@@ -10,6 +10,7 @@ Phase 4 adds operational control for write-side workflows:
 - Use-case catalog endpoint for supported workflows
 - Mock tooling capability endpoint for document and FHIR adapters
 - Audit event and review queue endpoints
+- Reviewer authorization on approval and rejection endpoints
 - Worker and eval-runner entrypoints
 - Shared configuration, logging, audit, orchestration, OpenAI, safety, use-case, and tool-contract packages
 - Mock execution for `document-summary` and `intake`
@@ -32,6 +33,8 @@ packages/
   observability/   Structured logging
   orchestration/   Workflow execution primitives
   review/          Human review queue and durable review storage
+  auth/            Reviewer authorization checks
+  integrations/    Provider registry for document and FHIR adapters
   safety/          Policy and human-approval gates
   tools/           Typed contracts and mock providers for document and FHIR toolsets
   use-cases/       Healthcare workflow catalog
@@ -58,6 +61,8 @@ prompt-log.md      Prompts used for each committed phase
 npm install
 cp .env.example .env
 ```
+
+Reviewer authorization is configured with `AUTHORIZED_REVIEWER_IDS`. Only those ids can approve or reject pending review requests.
 
 If you plan to send real traffic to OpenAI, set `OPENAI_API_KEY` and review the healthcare compliance posture before enabling PHI-related flows. Keep `ALLOW_PHI_WITH_OPENAI=false` until legal, security, and vendor agreements are in place.
 
@@ -205,6 +210,8 @@ curl -X POST http://localhost:3000/v1/reviews/<review-id>/approve \
     "comments": "Approved for mock execution."
   }'
 ```
+
+An approval with a reviewer id outside `AUTHORIZED_REVIEWER_IDS` should return `403`.
 
 11. Inspect persisted audit events:
 

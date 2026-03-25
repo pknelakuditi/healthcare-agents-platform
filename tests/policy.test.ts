@@ -14,6 +14,7 @@ const baseConfig: RuntimeConfig = {
   requireHumanApprovalForWrites: true,
   enableMockOpenAi: true,
   persistenceDir: '.runtime/test-policy',
+  authorizedReviewerIds: ['reviewer-1'],
 };
 
 const readTask: AgentTask = {
