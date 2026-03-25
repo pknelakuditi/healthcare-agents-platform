@@ -40,6 +40,13 @@ docs/architecture/ Phase notes and architectural decisions
 prompt-log.md      Prompts used for each committed phase
 ```
 
+## Planning Files
+
+- `docs/roadmap.md`: durable multi-phase development plan
+- `docs/phases/`: one file per phase with scope, verification, and follow-ups
+- `docs/development-workflow.md`: mandatory process for future phases
+- `prompt-log.md`: prompts and working interpretations used for each phase commit
+
 ## Prerequisites
 
 - Node.js 18.3+

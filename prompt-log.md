@@ -46,3 +46,14 @@
   - Add human review queue APIs and persistence.
   - Persist audit events and review records.
   - Allow approved write requests to execute through a controlled mock path.
+
+## Planning Workflow
+
+- Date: 2026-03-25
+- Commit label: `Planning workflow and roadmap docs`
+- User prompts:
+  - "how do you propose i persist develpoment plan in this repo."
+  - "yes please, ensure that we do that moving forward without me requiring to prompt"
+- Working interpretation:
+  - Add a durable roadmap, phase plan files, and workflow guidance directly in the repo.
+  - Treat roadmap updates, phase doc updates, and prompt-log updates as required work for every future phase by default.
