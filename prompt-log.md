@@ -128,3 +128,14 @@
 - Working interpretation:
   - Do not start the next implementation phase yet.
   - Persist the forward plan directly in the repo by updating the roadmap and creating concrete phase docs for the next few planned phases.
+
+## Repo Workflow Preference
+
+- Date: 2026-03-25
+- Commit label: `Persist repo-local git commit permission`
+- User prompts:
+  - "dont ask me permissions for doing git add and git commit commit messages again for this repo"
+  - "persist the above permission and show me how you did it"
+- Working interpretation:
+  - Persist a repo-local workflow rule that routine `git add` and `git commit -m` operations are pre-approved for this repository.
+  - Keep asking before riskier git operations such as rebases, resets, force-pushes, or destructive commands.

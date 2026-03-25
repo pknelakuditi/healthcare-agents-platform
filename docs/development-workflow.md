@@ -42,6 +42,21 @@ If a feature changes runtime behavior, also perform at least one live smoke chec
 - Keep prompt log updates in the same commit as the code changes
 - Keep roadmap and phase file updates in the same commit as the implemented phase
 
+## Repo-Local Agent Permissions
+
+For this repository, routine git staging and commit creation are pre-approved as part of normal task completion:
+
+- `git add ...`
+- `git commit -m "..."`
+
+Use this standing approval only for commits that directly reflect the active task in this repo. Continue to surface or ask before riskier git operations such as:
+
+- rebases
+- resets
+- amends not explicitly requested
+- force pushes
+- destructive checkout or restore operations
+
 ## Review Standard
 
 - Prefer production-safe defaults
