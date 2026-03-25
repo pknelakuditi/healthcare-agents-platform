@@ -4,7 +4,13 @@ Production-oriented TypeScript foundation for healthcare agent workflows. The re
 
 ## Current Phase
 
-Phase 10 starts externalizing perimeter state and ingress assumptions:
+The repo is currently between implementation phases. Phase 10 is complete, and the next phases are queued in the roadmap and phase-plan docs:
+
+- Phase 11: shared perimeter store and ingress hardening
+- Phase 12: authorization context and tool policy
+- Phase 13: deployment manifests and ops readiness
+
+Current implemented platform capabilities:
 
 - API service with health, readiness, and orchestration endpoints
 - Use-case catalog endpoint for supported workflows

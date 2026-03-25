@@ -40,48 +40,6 @@ Build a production-oriented healthcare agents platform with:
 
 ## Planned Phases
 
-### Phase 5
-
-- Add real integration boundaries for FHIR and document adapters
-- Add reviewer authentication and authorization checks
-- Separate operational roles for requesters and approvers
-- Add configuration-backed reviewer allowlists and actor roles
-- Keep mock providers as the default implementation behind the new interfaces
-
-### Phase 6
-
-- Add evaluation datasets, golden outputs, and regression scoring
-- Add citations and evidence packaging for document workflows
-- Add richer failure handling and retry semantics
-- Add explicit API visibility for eval runs and evidence-bearing outputs
-
-### Phase 7
-
-- Replace file-backed persistence with production-grade database storage
-- Add deployment configuration, environment hardening, and runbooks
-- Add telemetry and alerting coverage for workflow failures
-- Introduce a database repository boundary with a file-backed adapter as the default implementation
-- Improve failure handling around persistence operations and API error surfaces
-
-### Phase 8
-
-- Add API-level client authentication for protected routes
-- Harden production configuration so unsafe mock deployment defaults fail fast
-- Add response security headers and request trace headers by default
-- Expose auth and security posture through readiness and startup behavior
-
-### Phase 9
-
-- Add rate limiting, explicit CORS policy controls, and audit-friendly actor identity propagation
-- Introduce stronger machine-to-machine authentication beyond shared API keys
-- Add deployment manifests and environment-specific runbooks
-
-### Phase 10
-
-- move rate limiting and replay protection to a shared external store
-- add deployment-oriented ingress and gateway runbooks
-- strengthen actor identity propagation and downstream authorization context
-
 ### Phase 11
 
 - replace in-memory perimeter state with a multi-instance-safe backing store
