@@ -86,6 +86,18 @@ export function runMockDocumentWorkflow(
     });
   }
 
+  if (task.useCase === 'patient-outreach') {
+    artifacts.push({
+      kind: 'document',
+      id: `${task.requestId}:outreach-draft`,
+      label: 'Mock outreach letter draft',
+      data: {
+        channel: 'patient-message',
+        text: 'Reminder: your follow-up appointment is scheduled and requires confirmation.',
+      },
+    });
+  }
+
   return {
     steps,
     artifacts,

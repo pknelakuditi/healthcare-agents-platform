@@ -57,7 +57,7 @@ const useCaseCatalog: Record<UseCase, UseCaseDefinition> = {
     requiredCapabilities: ['message-composition', 'approval-gate'],
     documentOperations: ['generate-letter'],
     fhirResources: ['Patient', 'Appointment'],
-    autoExecutable: false,
+    autoExecutable: true,
   },
   'coding-review': {
     useCase: 'coding-review',

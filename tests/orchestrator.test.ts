@@ -12,6 +12,7 @@ const config: RuntimeConfig = {
   allowPhiWithOpenAi: false,
   requireHumanApprovalForWrites: true,
   enableMockOpenAi: true,
+  persistenceDir: '.runtime/test-orchestrator',
 };
 
 describe('routeAgentTask', () => {

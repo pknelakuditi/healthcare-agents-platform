@@ -72,3 +72,20 @@ export interface WorkflowExecution {
   steps: WorkflowStepResult[];
   artifacts: WorkflowArtifact[];
 }
+
+export interface ReviewDecisionRecord {
+  reviewerId: string;
+  decidedAt: string;
+  comments: string;
+}
+
+export interface ReviewRequest {
+  reviewId: string;
+  requestId: string;
+  task: AgentTask;
+  workflowId: string;
+  submittedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reason: string;
+  reviewDecision?: ReviewDecisionRecord;
+}

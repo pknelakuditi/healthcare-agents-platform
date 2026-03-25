@@ -29,6 +29,7 @@ const runtimeConfigSchema = z.object({
   allowPhiWithOpenAi: booleanFromEnv.default(false),
   requireHumanApprovalForWrites: booleanFromEnv.default(true),
   enableMockOpenAi: booleanFromEnv.default(true),
+  persistenceDir: z.string().min(1).default('.runtime'),
 });
 
 export type RuntimeConfig = z.infer<typeof runtimeConfigSchema>;
@@ -46,6 +47,7 @@ function normalizeEnv(source: NodeJS.ProcessEnv): Record<string, unknown> {
     allowPhiWithOpenAi: source.ALLOW_PHI_WITH_OPENAI,
     requireHumanApprovalForWrites: source.REQUIRE_HUMAN_APPROVAL_FOR_WRITES,
     enableMockOpenAi: source.ENABLE_MOCK_OPENAI,
+    persistenceDir: source.PERSISTENCE_DIR,
   };
 }
 

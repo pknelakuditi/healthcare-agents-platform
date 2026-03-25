@@ -13,6 +13,7 @@ const baseConfig: RuntimeConfig = {
   allowPhiWithOpenAi: false,
   requireHumanApprovalForWrites: true,
   enableMockOpenAi: true,
+  persistenceDir: '.runtime/test-policy',
 };
 
 const readTask: AgentTask = {

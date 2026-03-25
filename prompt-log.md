@@ -35,3 +35,14 @@
   - Add mock-backed executable document and FHIR adapters.
   - Execute safe read-only workflows for `document-summary` and `intake`.
   - Keep write flows gated while exposing richer execution artifacts and verification paths.
+
+## Phase 4
+
+- Date: 2026-03-24
+- Commit label: `Phase 4 review queue and persistence`
+- User prompts:
+  - "yes"
+- Working interpretation:
+  - Add human review queue APIs and persistence.
+  - Persist audit events and review records.
+  - Allow approved write requests to execute through a controlled mock path.

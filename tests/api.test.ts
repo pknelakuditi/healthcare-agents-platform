@@ -12,6 +12,7 @@ const config: RuntimeConfig = {
   allowPhiWithOpenAi: false,
   requireHumanApprovalForWrites: true,
   enableMockOpenAi: true,
+  persistenceDir: '.runtime/test-api',
 };
 
 const appsToClose: ReturnType<typeof buildApp>[] = [];
@@ -115,5 +116,39 @@ describe('api', () => {
     expect(response.statusCode).toBe(200);
     expect(body.documents.mode).toBe('mock');
     expect(body.fhir.supports).toContain('read');
+  });
+
+  it('persists audit events and review requests for gated write flows', async () => {
+    const app = buildApp(config);
+    appsToClose.push(app);
+
+    const orchestrationResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/orchestrate',
+      payload: {
+        requestId: 'req-review-1',
+        userId: 'user-1',
+        useCase: 'patient-outreach',
+        actionType: 'write',
+        containsPhi: false,
+        message: 'Send a reminder message.',
+      },
+    });
+
+    const orchestrationBody = orchestrationResponse.json();
+    expect(orchestrationBody.reviewRequest.status).toBe('pending');
+
+    const reviewsResponse = await app.inject({
+      method: 'GET',
+      url: '/v1/reviews',
+    });
+
+    const auditResponse = await app.inject({
+      method: 'GET',
+      url: '/v1/audit/events',
+    });
+
+    expect(reviewsResponse.json().reviews.length).toBeGreaterThan(0);
+    expect(auditResponse.json().events.length).toBeGreaterThan(0);
   });
 });

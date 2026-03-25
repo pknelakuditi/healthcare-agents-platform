@@ -2,6 +2,8 @@ export type {
   ActionType,
   AgentDecision,
   AgentTask,
+  ReviewDecisionRecord,
+  ReviewRequest,
   ToolPlan,
   UseCase,
   WorkflowArtifact,

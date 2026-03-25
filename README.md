@@ -4,14 +4,16 @@ Production-oriented TypeScript foundation for healthcare agent workflows. The re
 
 ## Current Phase
 
-Phase 3 adds executable mock workflows for the first read-only healthcare flows:
+Phase 4 adds operational control for write-side workflows:
 
 - API service with health, readiness, and orchestration endpoints
 - Use-case catalog endpoint for supported workflows
 - Mock tooling capability endpoint for document and FHIR adapters
+- Audit event and review queue endpoints
 - Worker and eval-runner entrypoints
 - Shared configuration, logging, audit, orchestration, OpenAI, safety, use-case, and tool-contract packages
 - Mock execution for `document-summary` and `intake`
+- Human review and mock approval execution for `patient-outreach`
 - Tests for orchestration, policy gating, config loading, API behavior, use-case routing, and mock providers
 - Prompt logging discipline for every commit
 
@@ -26,9 +28,10 @@ packages/
   agents/          Agent contracts and orchestrator
   ai/openai/       OpenAI client wrapper
   config/          Runtime configuration and env parsing
-  data/audit/      Audit event contracts
+  data/audit/      Audit event contracts and persistence
   observability/   Structured logging
   orchestration/   Workflow execution primitives
+  review/          Human review queue and durable review storage
   safety/          Policy and human-approval gates
   tools/           Typed contracts and mock providers for document and FHIR toolsets
   use-cases/       Healthcare workflow catalog
@@ -178,6 +181,29 @@ curl -X POST http://localhost:3000/v1/orchestrate \
 ```
 
 The intake request should return completed mock execution artifacts. The write request should return `held_for_human_review` while approval is required.
+
+9. List pending reviews:
+
+```bash
+curl http://localhost:3000/v1/reviews
+```
+
+10. Approve a pending review:
+
+```bash
+curl -X POST http://localhost:3000/v1/reviews/<review-id>/approve \
+  -H "content-type: application/json" \
+  -d '{
+    "reviewerId": "supervisor-1",
+    "comments": "Approved for mock execution."
+  }'
+```
+
+11. Inspect persisted audit events:
+
+```bash
+curl http://localhost:3000/v1/audit/events
+```
 
 ## Production Notes
 

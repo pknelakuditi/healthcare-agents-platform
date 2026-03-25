@@ -8,11 +8,46 @@ export function executeWorkflow(task: AgentTask, _config: RuntimeConfig): Workfl
   const definition = getUseCaseDefinition(task.useCase);
 
   if (!definition.autoExecutable || task.actionType !== 'read') {
+    if (!(definition.autoExecutable && task.useCase === 'patient-outreach' && task.actionType === 'write')) {
+      return {
+        status: 'not_started',
+        currentStage: 'execution_ready',
+        steps: [],
+        artifacts: [],
+      };
+    }
+  }
+
+  if (task.useCase === 'patient-outreach') {
+    const documentExecution = runMockDocumentWorkflow(task, {
+      operation: 'generate-letter',
+    });
+    const fhirExecution = runMockFhirWorkflow(task, [
+      {
+        resourceType: 'Patient',
+        operation: 'read',
+        accessMode: 'write',
+      },
+      {
+        resourceType: 'Appointment',
+        operation: 'read',
+        accessMode: 'write',
+      },
+    ]);
+
     return {
-      status: 'not_started',
-      currentStage: 'execution_ready',
-      steps: [],
-      artifacts: [],
+      status: 'completed',
+      currentStage: 'completed',
+      steps: [
+        ...documentExecution.steps.filter((step) => step.status === 'completed'),
+        ...fhirExecution.steps,
+        {
+          stage: 'completed',
+          status: 'completed',
+          summary: 'Patient outreach package generated in mock mode after approval.',
+        },
+      ],
+      artifacts: [...documentExecution.artifacts, ...fhirExecution.artifacts],
     };
   }
 
