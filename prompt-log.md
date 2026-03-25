@@ -118,3 +118,13 @@
 - Working interpretation:
   - Continue directly into the next perimeter phase.
   - Move replay and rate-limit handling behind replaceable boundaries, add a gateway-oriented auth path, and document ingress/gateway operational assumptions.
+
+## Planning Refresh
+
+- Date: 2026-03-25
+- Commit label: `Planning next healthcare platform phases`
+- User prompts:
+  - "lets do the next phase later, just persist the plan for next phases"
+- Working interpretation:
+  - Do not start the next implementation phase yet.
+  - Persist the forward plan directly in the repo by updating the roadmap and creating concrete phase docs for the next few planned phases.

@@ -31,11 +31,12 @@ Build a production-oriented healthcare agents platform with:
 - Phase 7: Persistence boundary and operational hardening. Commit `e0da6d2`
 - Phase 8: Deployment and auth hardening. Commit `99a6bcc`
 - Phase 9: Perimeter controls and machine auth. Commit `171d20c`
+- Phase 10: Externalized perimeter state and gateway auth. Commit `f199b6f`
 
 ## Current Phase
 
-- Phase 10: Externalized perimeter state and gateway auth
-- Status: in progress
+- Planning next implementation phases
+- Status: queued
 
 ## Planned Phases
 
@@ -87,6 +88,18 @@ Build a production-oriented healthcare agents platform with:
 - tighten gateway identity assertions and downstream service authorization context
 - add deployment manifests and environment-specific ingress checks
 
+### Phase 12
+
+- add service-to-service authorization context propagation
+- constrain tool access by actor identity and granted scopes
+- persist and audit authenticated actor metadata end to end
+
+### Phase 13
+
+- add deployment manifests and environment overlays for api, worker, and eval-runner
+- document operational readiness, rollback, and secret rotation procedures
+- expand readiness signals and runbooks for production deployment gates
+
 ## Cross-Cutting Requirements
 
 - Every phase must update:
@@ -134,3 +147,21 @@ Build a production-oriented healthcare agents platform with:
 - Verify replayed HMAC nonces fail cleanly after the first successful request
 - Verify gateway-asserted authentication works only with the required trusted-proxy settings
 - Verify readiness reports the perimeter state provider in use
+
+## Phase 11 Verification Preview
+
+- Verify rate limiting stays consistent across multiple app instances through a shared backing store
+- Verify replay protection blocks nonce reuse across instances, not just within one process
+- Verify gateway-specific deployment assumptions are reflected in the updated runbooks
+
+## Phase 12 Verification Preview
+
+- Verify authenticated actor identity and scopes propagate into workflow execution and audit events
+- Verify tool or workflow access is denied when actor scopes do not permit the requested action
+- Verify readiness or diagnostics expose the active authorization-context mode
+
+## Phase 13 Verification Preview
+
+- Verify deployment manifests start all required services with the documented config
+- Verify operational runbooks cover deploy, rollback, and secret rotation paths
+- Verify production readiness checks align with the deployment documentation
