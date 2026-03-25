@@ -108,3 +108,13 @@
 - Working interpretation:
   - Continue directly into the next hardening phase without re-establishing repo workflow.
   - Add rate limiting, explicit CORS policy handling, and a stronger machine-to-machine auth mode than shared API keys alone.
+
+## Phase 10
+
+- Date: 2026-03-25
+- Commit label: `Phase 10 externalized perimeter state and gateway auth`
+- User prompts:
+  - "sure"
+- Working interpretation:
+  - Continue directly into the next perimeter phase.
+  - Move replay and rate-limit handling behind replaceable boundaries, add a gateway-oriented auth path, and document ingress/gateway operational assumptions.

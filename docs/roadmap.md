@@ -30,10 +30,11 @@ Build a production-oriented healthcare agents platform with:
 - Phase 6: Evaluations and evidence packaging. Commit `49eaa23`
 - Phase 7: Persistence boundary and operational hardening. Commit `e0da6d2`
 - Phase 8: Deployment and auth hardening. Commit `99a6bcc`
+- Phase 9: Perimeter controls and machine auth. Commit `171d20c`
 
 ## Current Phase
 
-- Phase 9: Perimeter controls and machine auth
+- Phase 10: Externalized perimeter state and gateway auth
 - Status: in progress
 
 ## Planned Phases
@@ -80,6 +81,12 @@ Build a production-oriented healthcare agents platform with:
 - add deployment-oriented ingress and gateway runbooks
 - strengthen actor identity propagation and downstream authorization context
 
+### Phase 11
+
+- replace in-memory perimeter state with a multi-instance-safe backing store
+- tighten gateway identity assertions and downstream service authorization context
+- add deployment manifests and environment-specific ingress checks
+
 ## Cross-Cutting Requirements
 
 - Every phase must update:
@@ -121,3 +128,9 @@ Build a production-oriented healthcare agents platform with:
 - Verify allowed origins receive successful preflight handling while disallowed origins fail cleanly
 - Verify repeated requests return `429` with retry guidance when the limit is exceeded
 - Verify HMAC-signed readiness requests succeed in signed-request mode
+
+## Phase 10 Verification Preview
+
+- Verify replayed HMAC nonces fail cleanly after the first successful request
+- Verify gateway-asserted authentication works only with the required trusted-proxy settings
+- Verify readiness reports the perimeter state provider in use

@@ -90,4 +90,30 @@ describe('loadRuntimeConfig', () => {
       }),
     ).toThrow('CORS is enabled, but CORS_ALLOWED_ORIGINS is empty.');
   });
+
+  it('rejects gateway asserted mode without trust proxy and shared secret', () => {
+    expect(() =>
+      loadRuntimeConfig({
+        NODE_ENV: 'test',
+        REQUIRE_API_AUTHENTICATION: 'true',
+        API_AUTHENTICATION_MODE: 'gateway-asserted',
+        API_CLIENT_KEYS: 'ops-client:super-secret-auth-key',
+      }),
+    ).toThrow('Gateway asserted authentication requires TRUST_PROXY=true.');
+  });
+
+  it('accepts gateway asserted mode with the required settings', () => {
+    const config = loadRuntimeConfig({
+      NODE_ENV: 'test',
+      REQUIRE_API_AUTHENTICATION: 'true',
+      API_AUTHENTICATION_MODE: 'gateway-asserted',
+      TRUST_PROXY: 'true',
+      GATEWAY_SHARED_SECRET: 'gateway-shared-secret',
+      API_CLIENT_KEYS: 'ops-client:super-secret-auth-key',
+    });
+
+    expect(config.apiAuthenticationMode).toBe('gateway-asserted');
+    expect(config.gatewaySharedSecret).toBe('gateway-shared-secret');
+    expect(config.trustProxy).toBe(true);
+  });
 });

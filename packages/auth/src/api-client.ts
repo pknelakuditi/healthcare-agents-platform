@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type { RuntimeConfig } from '../../config/src/index.js';
+import type { ReplayProtectionRepository } from '../../perimeter/src/index.js';
 
 export class ApiAuthenticationRequiredError extends Error {
   constructor() {
@@ -18,6 +19,8 @@ export class ApiAuthenticationError extends Error {
 export type AuthenticatedApiClient = {
   clientId: string;
   authenticationMode: RuntimeConfig['apiAuthenticationMode'];
+  actorId?: string;
+  scopes?: string[];
 };
 
 function extractBearerToken(authorizationHeader?: string): string | undefined {
@@ -61,9 +64,10 @@ function buildSignaturePayload(input: {
   method: string;
   path: string;
   timestamp: string;
+  nonce: string;
   bodyDigest: string;
 }): string {
-  return [input.method.toUpperCase(), input.path, input.timestamp, input.bodyDigest].join('\n');
+  return [input.method.toUpperCase(), input.path, input.timestamp, input.nonce, input.bodyDigest].join('\n');
 }
 
 function authenticateSharedKey(
@@ -99,11 +103,13 @@ function authenticateHmacSignature(
     path: string;
     body: unknown;
   },
+  replayProtectionRepository: ReplayProtectionRepository,
 ): AuthenticatedApiClient {
   const timestamp = normalizeHeaderValue(headers['x-timestamp']);
   const providedSignature = normalizeHeaderValue(headers['x-signature']);
+  const nonce = normalizeHeaderValue(headers['x-nonce']);
 
-  if (!clientId || !timestamp || !providedSignature) {
+  if (!clientId || !timestamp || !providedSignature || !nonce) {
     throw new ApiAuthenticationRequiredError();
   }
 
@@ -122,12 +128,18 @@ function authenticateHmacSignature(
     throw new ApiAuthenticationError('API request signature has expired.');
   }
 
+  const replayKey = `${clientId}:${nonce}`;
+  if (!replayProtectionRepository.claim(replayKey, Date.now(), config.maxRequestSignatureAgeSeconds)) {
+    throw new ApiAuthenticationError('API request signature nonce has already been used.');
+  }
+
   const bodyDigest = createRequestBodyDigest(request.body);
   const expectedSignature = createHmac('sha256', credential.apiKey)
     .update(buildSignaturePayload({
       method: request.method,
       path: request.path,
       timestamp,
+      nonce,
       bodyDigest,
     }))
     .digest('hex');
@@ -142,6 +154,33 @@ function authenticateHmacSignature(
   };
 }
 
+function authenticateGatewayAssertion(
+  headers: Record<string, string | string[] | undefined>,
+  config: RuntimeConfig,
+): AuthenticatedApiClient {
+  const gatewaySecret = normalizeHeaderValue(headers['x-gateway-auth']);
+  const clientId = normalizeHeaderValue(headers['x-authenticated-client-id']);
+  const actorId = normalizeHeaderValue(headers['x-authenticated-user-id']);
+  const scopesHeader = normalizeHeaderValue(headers['x-authenticated-scopes']);
+
+  if (!gatewaySecret || !clientId || !actorId) {
+    throw new ApiAuthenticationRequiredError();
+  }
+
+  if (!config.gatewaySharedSecret || !constantTimeEquals(gatewaySecret, config.gatewaySharedSecret)) {
+    throw new ApiAuthenticationError();
+  }
+
+  return {
+    clientId,
+    actorId,
+    scopes: scopesHeader
+      ? scopesHeader.split(',').map((item) => item.trim()).filter(Boolean)
+      : [],
+    authenticationMode: 'gateway-asserted',
+  };
+}
+
 export function authenticateApiClient(
   headers: Record<string, string | string[] | undefined>,
   config: RuntimeConfig,
@@ -150,16 +189,21 @@ export function authenticateApiClient(
     path: string;
     body: unknown;
   },
+  replayProtectionRepository: ReplayProtectionRepository,
 ): AuthenticatedApiClient | null {
   if (!config.requireApiAuthentication) {
     return null;
   }
 
-  const clientId = normalizeHeaderValue(headers['x-client-id']);
-
   if (config.apiAuthenticationMode === 'hmac-signature') {
-    return authenticateHmacSignature(clientId, headers, config, request);
+    const clientId = normalizeHeaderValue(headers['x-client-id']);
+    return authenticateHmacSignature(clientId, headers, config, request, replayProtectionRepository);
   }
 
+  if (config.apiAuthenticationMode === 'gateway-asserted') {
+    return authenticateGatewayAssertion(headers, config);
+  }
+
+  const clientId = normalizeHeaderValue(headers['x-client-id']);
   return authenticateSharedKey(clientId, headers, config);
 }

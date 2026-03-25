@@ -42,10 +42,11 @@ function createRequestSignature(input: {
   body?: unknown;
   secret: string;
   timestamp: string;
+  nonce: string;
 }): string {
   const bodyPayload = input.body === undefined ? '' : JSON.stringify(input.body);
   const bodyDigest = createHash('sha256').update(bodyPayload).digest('hex');
-  const payload = [input.method.toUpperCase(), input.path, input.timestamp, bodyDigest].join('\n');
+  const payload = [input.method.toUpperCase(), input.path, input.timestamp, input.nonce, bodyDigest].join('\n');
   return createHmac('sha256', input.secret).update(payload).digest('hex');
 }
 
@@ -111,6 +112,7 @@ describe('api', () => {
 
   it('accepts HMAC-signed requests on protected routes', async () => {
     const timestamp = String(Date.now());
+    const nonce = 'nonce-1';
     const app = buildApp({
       ...config,
       requireApiAuthentication: true,
@@ -125,11 +127,13 @@ describe('api', () => {
       headers: {
         'x-client-id': 'signed-client',
         'x-timestamp': timestamp,
+        'x-nonce': nonce,
         'x-signature': createRequestSignature({
           method: 'GET',
           path: '/ready',
           secret: 'super-secret-signing-key',
           timestamp,
+          nonce,
         }),
       },
     });
@@ -138,6 +142,80 @@ describe('api', () => {
     expect(response.json()).toMatchObject({
       status: 'ready',
       apiAuthenticationMode: 'hmac-signature',
+    });
+  });
+
+  it('rejects replayed HMAC nonces on protected routes', async () => {
+    const timestamp = String(Date.now());
+    const nonce = 'nonce-replay-1';
+    const signature = createRequestSignature({
+      method: 'GET',
+      path: '/ready',
+      secret: 'super-secret-signing-key',
+      timestamp,
+      nonce,
+    });
+    const app = buildApp({
+      ...config,
+      requireApiAuthentication: true,
+      apiAuthenticationMode: 'hmac-signature',
+      apiClients: [{ clientId: 'signed-client', apiKey: 'super-secret-signing-key' }],
+    });
+    appsToClose.push(app);
+
+    const firstResponse = await app.inject({
+      method: 'GET',
+      url: '/ready',
+      headers: {
+        'x-client-id': 'signed-client',
+        'x-timestamp': timestamp,
+        'x-nonce': nonce,
+        'x-signature': signature,
+      },
+    });
+
+    const replayedResponse = await app.inject({
+      method: 'GET',
+      url: '/ready',
+      headers: {
+        'x-client-id': 'signed-client',
+        'x-timestamp': String(Date.now()),
+        'x-nonce': nonce,
+        'x-signature': signature,
+      },
+    });
+
+    expect(firstResponse.statusCode).toBe(200);
+    expect(replayedResponse.statusCode).toBe(401);
+    expect(replayedResponse.json()).toEqual({ error: 'api_authentication_failed' });
+  });
+
+  it('accepts gateway-asserted identity headers when configured', async () => {
+    const app = buildApp({
+      ...config,
+      requireApiAuthentication: true,
+      apiAuthenticationMode: 'gateway-asserted',
+      trustProxy: true,
+      gatewaySharedSecret: 'gateway-shared-secret',
+      apiClients: [{ clientId: 'ignored-client', apiKey: 'super-secret-auth-key' }],
+    });
+    appsToClose.push(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ready',
+      headers: {
+        'x-gateway-auth': 'gateway-shared-secret',
+        'x-authenticated-client-id': 'gateway-client',
+        'x-authenticated-user-id': 'gateway-user',
+        'x-authenticated-scopes': 'readiness:read,reviews:write',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      status: 'ready',
+      apiAuthenticationMode: 'gateway-asserted',
     });
   });
 

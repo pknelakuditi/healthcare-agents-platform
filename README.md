@@ -4,7 +4,7 @@ Production-oriented TypeScript foundation for healthcare agent workflows. The re
 
 ## Current Phase
 
-Phase 9 hardens the platform perimeter:
+Phase 10 starts externalizing perimeter state and ingress assumptions:
 
 - API service with health, readiness, and orchestration endpoints
 - Use-case catalog endpoint for supported workflows
@@ -13,8 +13,10 @@ Phase 9 hardens the platform perimeter:
 - Reviewer authorization on approval and rejection endpoints
 - Optional API client authentication for protected routes
 - Configurable HMAC request-signature mode for protected routes
+- Gateway-asserted auth mode for trusted proxy deployments
 - Fixed-window rate limiting at the API edge
 - Explicit CORS allowlist and preflight handling
+- Replay protection for HMAC nonces through a perimeter-state boundary
 - Production config guards that fail fast on unsafe mock/auth combinations
 - Security headers and request-id propagation on API responses
 - Eval summary endpoint and in-repo golden cases
@@ -49,6 +51,7 @@ packages/
   use-cases/       Healthcare workflow catalog
 tests/             Platform tests
 docs/architecture/ Phase notes and architectural decisions
+docs/runbooks/     Operational runbooks
 prompt-log.md      Prompts used for each committed phase
 ```
 
@@ -75,6 +78,7 @@ Reviewer authorization is configured with `AUTHORIZED_REVIEWER_IDS`. Only those 
 Persistence is now accessed through repository interfaces, with a file-backed adapter as the default implementation.
 Protected routes can require machine-to-machine credentials with `REQUIRE_API_AUTHENTICATION=true` and `API_CLIENT_KEYS=client-id:long-shared-secret`.
 Use `API_AUTHENTICATION_MODE=shared-key` for direct secret auth or `API_AUTHENTICATION_MODE=hmac-signature` for signed requests.
+Use `API_AUTHENTICATION_MODE=gateway-asserted` only behind a trusted proxy with `TRUST_PROXY=true` and `GATEWAY_SHARED_SECRET` configured.
 When `CORS_ENABLED=true`, set exact values in `CORS_ALLOWED_ORIGINS`.
 
 If you plan to send real traffic to OpenAI, set `OPENAI_API_KEY` and review the healthcare compliance posture before enabling PHI-related flows. Keep `ALLOW_PHI_WITH_OPENAI=false` until legal, security, and vendor agreements are in place.
@@ -163,7 +167,18 @@ For HMAC-signed readiness requests, send:
 curl http://localhost:3000/ready \
   -H "x-client-id: ops-client" \
   -H "x-timestamp: <unix-ms>" \
+  -H "x-nonce: <unique-per-request-nonce>" \
   -H "x-signature: <hex-hmac-sha256>"
+```
+
+For gateway-asserted requests behind a trusted proxy:
+
+```bash
+curl http://localhost:3000/ready \
+  -H "x-gateway-auth: <gateway-shared-secret>" \
+  -H "x-authenticated-client-id: gateway-client" \
+  -H "x-authenticated-user-id: gateway-user" \
+  -H "x-authenticated-scopes: readiness:read,reviews:write"
 ```
 
 4. Inspect supported healthcare use cases:
@@ -271,6 +286,7 @@ When API authentication is enabled, confirm unauthenticated readiness calls fail
 - `configuredApiClientCount`
 - `securityHeadersEnabled`
 - `trustProxy`
+- `perimeterStateProvider`
 
 15. If CORS is enabled, verify an allowed preflight request succeeds:
 
@@ -285,14 +301,19 @@ curl -X OPTIONS http://localhost:3000/ready \
 for i in 1 2 3; do curl -i http://localhost:3000/health; done
 ```
 
+17. In HMAC mode, reuse the same nonce and confirm the second request fails.
+
+18. If using gateway-asserted mode, follow [ingress-and-gateway.md](/Users/pavannelakuditi/personal-projects/healthcare-agents-platform/docs/runbooks/ingress-and-gateway.md) and verify the readiness endpoint accepts only gateway-injected identity headers.
+
 ## Production Notes
 
 - Set `REQUIRE_API_AUTHENTICATION=true` and provide at least one `API_CLIENT_KEYS` entry before production deployment.
 - Prefer `API_AUTHENTICATION_MODE=hmac-signature` over plain shared-key mode when you control both client and server implementations.
+- Use `API_AUTHENTICATION_MODE=gateway-asserted` only when the app is isolated behind infrastructure that strips and re-injects the trusted gateway headers.
 - Keep `ALLOW_MOCK_OPENAI_IN_PRODUCTION=false` unless you are deliberately running a non-production-like environment.
 - Set `TRUST_PROXY=true` only when the service is actually behind a trusted reverse proxy or load balancer.
 - Keep `CORS_ENABLED=false` unless you explicitly need browser access, and then allowlist only the exact origins that need it.
-- The current rate limiter is in-memory and per-instance. It is suitable for a single process, but not a final multi-instance production topology.
+- The current perimeter repositories are in-memory and per-instance. They are suitable for a single process, but not a final multi-instance production topology.
 - `/health` remains public for liveness checks; other endpoints can be protected with machine credentials.
 
 - Set `REQUIRE_API_AUTHENTICATION=true` and provide at least one `API_CLIENT_KEYS` entry before production deployment.

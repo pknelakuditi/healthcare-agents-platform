@@ -108,8 +108,9 @@ const runtimeConfigSchema = z.object({
   persistenceDir: z.string().min(1).default('.runtime'),
   authorizedReviewerIds: stringArrayFromEnv.default(['supervisor-1', 'reviewer-1']),
   requireApiAuthentication: booleanFromEnv.default(false),
-  apiAuthenticationMode: z.enum(['shared-key', 'hmac-signature']).default('shared-key'),
+  apiAuthenticationMode: z.enum(['shared-key', 'hmac-signature', 'gateway-asserted']).default('shared-key'),
   apiClients: apiClientsFromEnv.default([]),
+  gatewaySharedSecret: z.string().optional(),
   allowMockOpenAiInProduction: booleanFromEnv.default(false),
   trustProxy: booleanFromEnv.default(false),
   securityHeadersEnabled: booleanFromEnv.default(true),
@@ -143,6 +144,7 @@ function normalizeEnv(source: NodeJS.ProcessEnv): Record<string, unknown> {
       source.REQUIRE_API_AUTHENTICATION ?? (source.NODE_ENV === 'production' ? 'true' : 'false'),
     apiAuthenticationMode: source.API_AUTHENTICATION_MODE,
     apiClients: source.API_CLIENT_KEYS,
+    gatewaySharedSecret: source.GATEWAY_SHARED_SECRET,
     allowMockOpenAiInProduction: source.ALLOW_MOCK_OPENAI_IN_PRODUCTION,
     trustProxy: source.TRUST_PROXY,
     securityHeadersEnabled: source.SECURITY_HEADERS_ENABLED,
@@ -163,6 +165,20 @@ function validateRuntimeConfig(config: RuntimeConfig): RuntimeConfig {
 
   if (config.apiAuthenticationMode === 'hmac-signature' && !config.requireApiAuthentication) {
     throw new Error('HMAC request signatures require API authentication to remain enabled.');
+  }
+
+  if (config.apiAuthenticationMode === 'gateway-asserted') {
+    if (!config.requireApiAuthentication) {
+      throw new Error('Gateway asserted authentication requires API authentication to remain enabled.');
+    }
+
+    if (!config.trustProxy) {
+      throw new Error('Gateway asserted authentication requires TRUST_PROXY=true.');
+    }
+
+    if (!config.gatewaySharedSecret) {
+      throw new Error('Gateway asserted authentication requires GATEWAY_SHARED_SECRET.');
+    }
   }
 
   if (config.corsEnabled && config.corsAllowedOrigins.length === 0) {

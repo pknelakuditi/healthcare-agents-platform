@@ -19,6 +19,7 @@ app
         trustProxy: config.trustProxy,
         rateLimitingEnabled: config.rateLimitingEnabled,
         corsEnabled: config.corsEnabled,
+        gatewaySharedSecretConfigured: Boolean(config.gatewaySharedSecret),
         enableMockOpenAi: config.enableMockOpenAi,
       },
       'API started',

@@ -16,10 +16,17 @@ import {
 } from '../../../packages/auth/src/index.js';
 import { runEvaluations } from '../../../packages/evals/src/index.js';
 import { createPersistenceRepositories, PersistenceError } from '../../../packages/persistence/src/index.js';
+import {
+  createPerimeterRepositories,
+  type RateLimitRepository,
+  type ReplayProtectionRepository,
+} from '../../../packages/perimeter/src/index.js';
 
 interface AppDependencies {
   auditRepository?: AuditRepository;
   reviewRepository?: ReviewRepository;
+  rateLimitRepository?: RateLimitRepository;
+  replayProtectionRepository?: ReplayProtectionRepository;
 }
 
 const orchestrateBodySchema = z.object({
@@ -50,11 +57,14 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDe
     trustProxy: config.trustProxy,
   });
   const persistence = createPersistenceRepositories(config);
+  const perimeter = createPerimeterRepositories();
   const auditStore: AuditRepository = deps.auditRepository ?? persistence.auditRepository;
   const reviewRepository: ReviewRepository = deps.reviewRepository ?? persistence.reviewRepository;
+  const rateLimitRepository: RateLimitRepository = deps.rateLimitRepository ?? perimeter.rateLimitRepository;
+  const replayProtectionRepository: ReplayProtectionRepository =
+    deps.replayProtectionRepository ?? perimeter.replayProtectionRepository;
   const reviewService = new ReviewQueueService(reviewRepository, config);
   const publicPaths = new Set(['/health']);
-  const rateLimitState = new Map<string, { count: number; windowStartedAt: number }>();
 
   const persistAuditEvent = <TPayload extends Record<string, unknown>>(event: ReturnType<typeof createAuditEvent<TPayload>>) =>
     auditStore.append(event);
@@ -74,7 +84,7 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDe
       reply.header('access-control-allow-methods', 'GET,POST,OPTIONS');
       reply.header(
         'access-control-allow-headers',
-        'content-type,x-client-id,x-api-key,x-timestamp,x-signature,authorization',
+        'content-type,x-client-id,x-api-key,x-timestamp,x-signature,x-nonce,authorization,x-gateway-auth,x-authenticated-client-id,x-authenticated-user-id,x-authenticated-scopes',
       );
     }
 
@@ -89,19 +99,17 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDe
         : request.headers['x-client-id'];
       const rateLimitKey = clientIdHeader ?? request.ip;
       const now = Date.now();
-      const existingWindow = rateLimitState.get(rateLimitKey);
+      const result = rateLimitRepository.consume(
+        rateLimitKey,
+        now,
+        config.rateLimitWindowMs,
+        config.rateLimitMaxRequests,
+      );
 
-      if (!existingWindow || now - existingWindow.windowStartedAt >= config.rateLimitWindowMs) {
-        rateLimitState.set(rateLimitKey, { count: 1, windowStartedAt: now });
-      } else if (existingWindow.count >= config.rateLimitMaxRequests) {
-        const retryAfterSeconds = Math.ceil(
-          (config.rateLimitWindowMs - (now - existingWindow.windowStartedAt)) / 1000,
-        );
-        reply.header('retry-after', String(retryAfterSeconds));
+      if (!result.allowed) {
+        reply.header('retry-after', String(result.retryAfterSeconds));
         reply.code(429);
         return reply.send({ error: 'rate_limit_exceeded' });
-      } else {
-        existingWindow.count += 1;
       }
     }
 
@@ -121,12 +129,14 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDe
         method: request.method,
         path: requestPath,
         body: request.body,
-      });
+      }, replayProtectionRepository);
       if (authenticatedClient) {
         request.log.info(
           {
             authenticatedClientId: authenticatedClient.clientId,
             authenticationMode: authenticatedClient.authenticationMode,
+            authenticatedActorId: authenticatedClient.actorId,
+            authenticatedScopes: authenticatedClient.scopes,
           },
           'API client authenticated',
         );
@@ -179,6 +189,7 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDe
     approvalsRequiredForWrites: config.requireHumanApprovalForWrites,
     authorizedReviewerCount: config.authorizedReviewerIds.length,
     persistenceProvider: persistence.provider,
+    perimeterStateProvider: perimeter.provider,
     apiAuthenticationRequired: config.requireApiAuthentication,
     apiAuthenticationMode: config.apiAuthenticationMode,
     configuredApiClientCount: config.apiClients.length,
