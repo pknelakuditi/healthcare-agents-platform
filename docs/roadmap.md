@@ -28,10 +28,11 @@ Build a production-oriented healthcare agents platform with:
 - Phase 4: Review queue and persistence. Commit `7d1fe53`
 - Phase 5: Integration boundaries and reviewer authz. Commit `d1fdcc2`
 - Phase 6: Evaluations and evidence packaging. Commit `49eaa23`
+- Phase 7: Persistence boundary and operational hardening. Commit `e0da6d2`
 
 ## Current Phase
 
-- Phase 7: Persistence boundary and operational hardening
+- Phase 8: Deployment and auth hardening
 - Status: in progress
 
 ## Planned Phases
@@ -58,6 +59,19 @@ Build a production-oriented healthcare agents platform with:
 - Add telemetry and alerting coverage for workflow failures
 - Introduce a database repository boundary with a file-backed adapter as the default implementation
 - Improve failure handling around persistence operations and API error surfaces
+
+### Phase 8
+
+- Add API-level client authentication for protected routes
+- Harden production configuration so unsafe mock deployment defaults fail fast
+- Add response security headers and request trace headers by default
+- Expose auth and security posture through readiness and startup behavior
+
+### Phase 9
+
+- Add rate limiting, explicit CORS policy controls, and audit-friendly actor identity propagation
+- Introduce stronger machine-to-machine authentication beyond shared API keys
+- Add deployment manifests and environment-specific runbooks
 
 ## Cross-Cutting Requirements
 
@@ -88,3 +102,9 @@ Build a production-oriented healthcare agents platform with:
 - Verify audit and review persistence now flow through repository interfaces
 - Verify persistence failures surface deterministic API errors instead of silent corruption
 - Verify current file-backed adapter still works through the new database boundary
+
+## Phase 8 Verification Preview
+
+- Verify protected routes return `401` without API client credentials when auth is enabled
+- Verify valid API client credentials succeed on protected routes
+- Verify readiness exposes API auth and security-header posture for operators

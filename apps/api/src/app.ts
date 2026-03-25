@@ -8,7 +8,12 @@ import { getOpenAiClientStatus } from '../../../packages/ai/openai/src/index.js'
 import { listUseCaseDefinitions } from '../../../packages/use-cases/src/index.js';
 import type { ReviewRepository } from '../../../packages/review/src/index.js';
 import { ReviewQueueService } from '../../../packages/review/src/service.js';
-import { ReviewerAuthorizationError } from '../../../packages/auth/src/index.js';
+import {
+  ApiAuthenticationError,
+  ApiAuthenticationRequiredError,
+  authenticateApiClient,
+  ReviewerAuthorizationError,
+} from '../../../packages/auth/src/index.js';
 import { runEvaluations } from '../../../packages/evals/src/index.js';
 import { createPersistenceRepositories, PersistenceError } from '../../../packages/persistence/src/index.js';
 
@@ -40,14 +45,65 @@ const reviewDecisionSchema = z.object({
 
 export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDependencies = {}) {
   const logger = createLogger(config, { app: 'api' });
-  const app = Fastify({ logger });
+  const app = Fastify({
+    logger,
+    trustProxy: config.trustProxy,
+  });
   const persistence = createPersistenceRepositories(config);
   const auditStore: AuditRepository = deps.auditRepository ?? persistence.auditRepository;
   const reviewRepository: ReviewRepository = deps.reviewRepository ?? persistence.reviewRepository;
   const reviewService = new ReviewQueueService(reviewRepository, config);
+  const publicPaths = new Set(['/health']);
 
   const persistAuditEvent = <TPayload extends Record<string, unknown>>(event: ReturnType<typeof createAuditEvent<TPayload>>) =>
     auditStore.append(event);
+
+  app.addHook('onRequest', async (request, reply) => {
+    const requestPath = request.raw.url?.split('?')[0] ?? request.url;
+    if (publicPaths.has(requestPath)) {
+      return;
+    }
+
+    try {
+      const authenticatedClient = authenticateApiClient(request.headers, config);
+      if (authenticatedClient) {
+        request.log.info({ authenticatedClientId: authenticatedClient.clientId }, 'API client authenticated');
+      }
+    } catch (error) {
+      reply.code(401);
+      return reply.send({
+        error:
+          error instanceof ApiAuthenticationRequiredError
+            ? 'api_authentication_required'
+            : error instanceof ApiAuthenticationError
+              ? 'api_authentication_failed'
+              : 'api_authentication_failed',
+      });
+    }
+  });
+
+  app.addHook('onSend', async (request, reply, payload) => {
+    reply.header('x-request-id', request.id);
+
+    if (!config.securityHeadersEnabled) {
+      return payload;
+    }
+
+    reply.header('x-content-type-options', 'nosniff');
+    reply.header('x-frame-options', 'DENY');
+    reply.header('referrer-policy', 'no-referrer');
+    reply.header('cache-control', 'no-store');
+    reply.header('content-security-policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+
+    if (config.nodeEnv === 'production' && config.hstsMaxAgeSeconds > 0) {
+      reply.header(
+        'strict-transport-security',
+        `max-age=${config.hstsMaxAgeSeconds}; includeSubDomains`,
+      );
+    }
+
+    return payload;
+  });
 
   app.get('/health', async () => ({
     status: 'ok',
@@ -61,6 +117,10 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDe
     approvalsRequiredForWrites: config.requireHumanApprovalForWrites,
     authorizedReviewerCount: config.authorizedReviewerIds.length,
     persistenceProvider: persistence.provider,
+    apiAuthenticationRequired: config.requireApiAuthentication,
+    configuredApiClientCount: config.apiClients.length,
+    trustProxy: config.trustProxy,
+    securityHeadersEnabled: config.securityHeadersEnabled,
   }));
 
   app.get('/v1/use-cases', async () => ({

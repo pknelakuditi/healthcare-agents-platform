@@ -65,6 +65,12 @@ const config: RuntimeConfig = {
   enableMockOpenAi: true,
   persistenceDir: '.runtime/test-persistence',
   authorizedReviewerIds: ['reviewer-1'],
+  requireApiAuthentication: false,
+  apiClients: [],
+  allowMockOpenAiInProduction: false,
+  trustProxy: false,
+  securityHeadersEnabled: true,
+  hstsMaxAgeSeconds: 15552000,
 };
 
 describe('persistence boundary', () => {

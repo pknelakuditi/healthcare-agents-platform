@@ -87,3 +87,14 @@
 - Working interpretation:
   - Start the next planned phase automatically.
   - Add a persistence boundary and operational hardening around storage and failure handling.
+
+## Phase 8
+
+- Date: 2026-03-25
+- Commit label: `Phase 8 deployment and auth hardening`
+- User prompts:
+  - "deployment/auth hardening"
+- Working interpretation:
+  - Start the next planned healthcare-platform phase in the sibling repo even though the current shell cwd is elsewhere.
+  - Add production-facing API authentication and deployment hardening rather than deeper feature work.
+  - Keep following the repo workflow automatically by updating roadmap, phase docs, and prompt log in the same commit.

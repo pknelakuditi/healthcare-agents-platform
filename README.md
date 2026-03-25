@@ -4,13 +4,16 @@ Production-oriented TypeScript foundation for healthcare agent workflows. The re
 
 ## Current Phase
 
-Phase 4 adds operational control for write-side workflows:
+Phase 8 hardens the runtime and deployment posture:
 
 - API service with health, readiness, and orchestration endpoints
 - Use-case catalog endpoint for supported workflows
 - Mock tooling capability endpoint for document and FHIR adapters
 - Audit event and review queue endpoints
 - Reviewer authorization on approval and rejection endpoints
+- Optional API client authentication for protected routes
+- Production config guards that fail fast on unsafe mock/auth combinations
+- Security headers and request-id propagation on API responses
 - Eval summary endpoint and in-repo golden cases
 - Worker and eval-runner entrypoints
 - Shared configuration, logging, audit, orchestration, OpenAI, safety, use-case, and tool-contract packages
@@ -67,8 +70,10 @@ cp .env.example .env
 
 Reviewer authorization is configured with `AUTHORIZED_REVIEWER_IDS`. Only those ids can approve or reject pending review requests.
 Persistence is now accessed through repository interfaces, with a file-backed adapter as the default implementation.
+Protected routes can require machine-to-machine credentials with `REQUIRE_API_AUTHENTICATION=true` and `API_CLIENT_KEYS=client-id:long-shared-secret`.
 
 If you plan to send real traffic to OpenAI, set `OPENAI_API_KEY` and review the healthcare compliance posture before enabling PHI-related flows. Keep `ALLOW_PHI_WITH_OPENAI=false` until legal, security, and vendor agreements are in place.
+In production, the runtime now fails fast if API authentication is disabled or if mock OpenAI remains enabled without an explicit override.
 
 ## Run
 
@@ -137,6 +142,14 @@ curl http://localhost:3000/health
 
 ```bash
 curl http://localhost:3000/ready
+```
+
+If API authentication is enabled, use:
+
+```bash
+curl http://localhost:3000/ready \
+  -H "x-client-id: ops-client" \
+  -H "x-api-key: replace-with-your-shared-secret"
 ```
 
 4. Inspect supported healthcare use cases:
@@ -237,7 +250,19 @@ curl http://localhost:3000/v1/evals/summary
 curl http://localhost:3000/ready
 ```
 
+When API authentication is enabled, confirm unauthenticated readiness calls fail with `401` and authenticated calls report:
+
+- `apiAuthenticationRequired`
+- `configuredApiClientCount`
+- `securityHeadersEnabled`
+- `trustProxy`
+
 ## Production Notes
+
+- Set `REQUIRE_API_AUTHENTICATION=true` and provide at least one `API_CLIENT_KEYS` entry before production deployment.
+- Keep `ALLOW_MOCK_OPENAI_IN_PRODUCTION=false` unless you are deliberately running a non-production-like environment.
+- Set `TRUST_PROXY=true` only when the service is actually behind a trusted reverse proxy or load balancer.
+- `/health` remains public for liveness checks; other endpoints can be protected with shared API client credentials.
 
 - All agent-facing actions should remain behind typed contracts.
 - Audit records should be emitted for every externally visible workflow step.

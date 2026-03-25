@@ -14,6 +14,12 @@ const config: RuntimeConfig = {
   enableMockOpenAi: true,
   persistenceDir: '.runtime/test-api',
   authorizedReviewerIds: ['supervisor-1', 'reviewer-1'],
+  requireApiAuthentication: false,
+  apiClients: [],
+  allowMockOpenAiInProduction: false,
+  trustProxy: false,
+  securityHeadersEnabled: true,
+  hstsMaxAgeSeconds: 15552000,
 };
 
 const appsToClose: ReturnType<typeof buildApp>[] = [];
@@ -34,6 +40,51 @@ describe('api', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ status: 'ok', service: 'api' });
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-request-id']).toBeDefined();
+  });
+
+  it('requires API client authentication on protected routes when enabled', async () => {
+    const app = buildApp({
+      ...config,
+      requireApiAuthentication: true,
+      apiClients: [{ clientId: 'ops-client', apiKey: 'super-secret-auth-key' }],
+    });
+    appsToClose.push(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({ error: 'api_authentication_required' });
+  });
+
+  it('accepts authenticated API clients on protected routes', async () => {
+    const app = buildApp({
+      ...config,
+      requireApiAuthentication: true,
+      apiClients: [{ clientId: 'ops-client', apiKey: 'super-secret-auth-key' }],
+    });
+    appsToClose.push(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ready',
+      headers: {
+        'x-client-id': 'ops-client',
+        'x-api-key': 'super-secret-auth-key',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      status: 'ready',
+      apiAuthenticationRequired: true,
+      configuredApiClientCount: 1,
+      securityHeadersEnabled: true,
+    });
   });
 
   it('returns orchestration output for safe reads', async () => {

@@ -21,6 +21,12 @@ function createConfig(): RuntimeConfig {
     enableMockOpenAi: true,
     persistenceDir,
     authorizedReviewerIds: ['reviewer-1', 'supervisor-1'],
+    requireApiAuthentication: false,
+    apiClients: [],
+    allowMockOpenAiInProduction: false,
+    trustProxy: false,
+    securityHeadersEnabled: true,
+    hstsMaxAgeSeconds: 15552000,
   };
 }
 
