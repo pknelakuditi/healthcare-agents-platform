@@ -37,6 +37,7 @@ packages/
   auth/            Reviewer authorization checks
   integrations/    Provider registry for document and FHIR adapters
   evals/           Golden cases and scoring logic
+  persistence/     Repository boundaries and persistence errors
   safety/          Policy and human-approval gates
   tools/           Typed contracts and mock providers for document and FHIR toolsets
   use-cases/       Healthcare workflow catalog
@@ -65,6 +66,7 @@ cp .env.example .env
 ```
 
 Reviewer authorization is configured with `AUTHORIZED_REVIEWER_IDS`. Only those ids can approve or reject pending review requests.
+Persistence is now accessed through repository interfaces, with a file-backed adapter as the default implementation.
 
 If you plan to send real traffic to OpenAI, set `OPENAI_API_KEY` and review the healthcare compliance posture before enabling PHI-related flows. Keep `ALLOW_PHI_WITH_OPENAI=false` until legal, security, and vendor agreements are in place.
 
@@ -228,6 +230,12 @@ curl http://localhost:3000/v1/evals/summary
 ```
 
 13. For `document-summary`, inspect the returned `evidence-package` artifact in the orchestration response.
+
+14. Confirm readiness reports the active persistence provider:
+
+```bash
+curl http://localhost:3000/ready
+```
 
 ## Production Notes
 

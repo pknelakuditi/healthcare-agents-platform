@@ -3,13 +3,19 @@ import { z } from 'zod';
 import { getRuntimeConfig, type RuntimeConfig } from '../../../packages/config/src/index.js';
 import { createLogger } from '../../../packages/observability/src/index.js';
 import { routeAgentTask } from '../../../packages/agents/orchestrator/src/index.js';
-import { createAuditEvent, FileAuditStore } from '../../../packages/data/audit/src/index.js';
+import { createAuditEvent, type AuditRepository } from '../../../packages/data/audit/src/index.js';
 import { getOpenAiClientStatus } from '../../../packages/ai/openai/src/index.js';
 import { listUseCaseDefinitions } from '../../../packages/use-cases/src/index.js';
-import { FileReviewStore } from '../../../packages/review/src/index.js';
+import type { ReviewRepository } from '../../../packages/review/src/index.js';
 import { ReviewQueueService } from '../../../packages/review/src/service.js';
 import { ReviewerAuthorizationError } from '../../../packages/auth/src/index.js';
 import { runEvaluations } from '../../../packages/evals/src/index.js';
+import { createPersistenceRepositories, PersistenceError } from '../../../packages/persistence/src/index.js';
+
+interface AppDependencies {
+  auditRepository?: AuditRepository;
+  reviewRepository?: ReviewRepository;
+}
 
 const orchestrateBodySchema = z.object({
   requestId: z.string().min(1),
@@ -32,11 +38,13 @@ const reviewDecisionSchema = z.object({
   comments: z.string().min(1),
 });
 
-export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
+export function buildApp(config: RuntimeConfig = getRuntimeConfig(), deps: AppDependencies = {}) {
   const logger = createLogger(config, { app: 'api' });
   const app = Fastify({ logger });
-  const auditStore = new FileAuditStore(config.persistenceDir);
-  const reviewService = new ReviewQueueService(new FileReviewStore(config.persistenceDir), config);
+  const persistence = createPersistenceRepositories(config);
+  const auditStore: AuditRepository = deps.auditRepository ?? persistence.auditRepository;
+  const reviewRepository: ReviewRepository = deps.reviewRepository ?? persistence.reviewRepository;
+  const reviewService = new ReviewQueueService(reviewRepository, config);
 
   const persistAuditEvent = <TPayload extends Record<string, unknown>>(event: ReturnType<typeof createAuditEvent<TPayload>>) =>
     auditStore.append(event);
@@ -52,6 +60,7 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
     openAi: getOpenAiClientStatus(config),
     approvalsRequiredForWrites: config.requireHumanApprovalForWrites,
     authorizedReviewerCount: config.authorizedReviewerIds.length,
+    persistenceProvider: persistence.provider,
   }));
 
   app.get('/v1/use-cases', async () => ({
@@ -75,66 +84,86 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
     summary: runEvaluations(config),
   }));
 
-  app.get('/v1/audit/events', async () => ({
-    events: auditStore.list(),
-  }));
+  app.get('/v1/audit/events', async (_request, reply) => {
+    try {
+      return { events: auditStore.list() };
+    } catch (error) {
+      reply.code(error instanceof PersistenceError ? 503 : 500);
+      return { error: error instanceof Error ? error.message : 'audit_read_failed' };
+    }
+  });
 
-  app.get('/v1/reviews', async () => ({
-    reviews: reviewService.list(),
-  }));
+  app.get('/v1/reviews', async (_request, reply) => {
+    try {
+      return { reviews: reviewService.list() };
+    } catch (error) {
+      reply.code(error instanceof PersistenceError ? 503 : 500);
+      return { error: error instanceof Error ? error.message : 'review_list_failed' };
+    }
+  });
 
   app.get('/v1/reviews/:reviewId', async (request, reply) => {
     const params = z.object({ reviewId: z.string().uuid() }).parse(request.params);
-    const review = reviewService.get(params.reviewId);
-    if (!review) {
-      reply.code(404);
-      return { error: 'review_not_found' };
+    try {
+      const review = reviewService.get(params.reviewId);
+      if (!review) {
+        reply.code(404);
+        return { error: 'review_not_found' };
+      }
+      return { review };
+    } catch (error) {
+      reply.code(error instanceof PersistenceError ? 503 : 500);
+      return { error: error instanceof Error ? error.message : 'review_get_failed' };
     }
-    return { review };
   });
 
   app.post('/v1/orchestrate', async (request, reply) => {
-    const body = orchestrateBodySchema.parse(request.body);
-    const result = routeAgentTask(body, config);
-    const auditEvent = persistAuditEvent(createAuditEvent({
-      eventType: 'orchestration.requested',
-      actorId: body.userId,
-      requestId: body.requestId,
-      payload: {
-        useCase: body.useCase,
-        actionType: body.actionType,
-        containsPhi: body.containsPhi,
-        decisionStatus: result.decision.status,
-        workflowStage: result.plan.stage,
-        executionStatus: result.execution.status,
-      },
-    }));
-
-    const reviewRequest =
-      result.decision.status === 'held_for_human_review'
-        ? reviewService.enqueue(body, result)
-        : null;
-
-    if (reviewRequest) {
-      persistAuditEvent(createAuditEvent({
-        eventType: 'review.requested',
+    try {
+      const body = orchestrateBodySchema.parse(request.body);
+      const result = routeAgentTask(body, config);
+      const auditEvent = persistAuditEvent(createAuditEvent({
+        eventType: 'orchestration.requested',
         actorId: body.userId,
         requestId: body.requestId,
         payload: {
-          reviewId: reviewRequest.reviewId,
-          workflowId: reviewRequest.workflowId,
-          reason: reviewRequest.reason,
+          useCase: body.useCase,
+          actionType: body.actionType,
+          containsPhi: body.containsPhi,
+          decisionStatus: result.decision.status,
+          workflowStage: result.plan.stage,
+          executionStatus: result.execution.status,
         },
       }));
-    }
 
-    reply.code(result.decision.status === 'rejected' ? 403 : 200);
-    return {
-      request: body,
-      result,
-      auditEvent,
-      reviewRequest,
-    };
+      const reviewRequest =
+        result.decision.status === 'held_for_human_review'
+          ? reviewService.enqueue(body, result)
+          : null;
+
+      if (reviewRequest) {
+        persistAuditEvent(createAuditEvent({
+          eventType: 'review.requested',
+          actorId: body.userId,
+          requestId: body.requestId,
+          payload: {
+            reviewId: reviewRequest.reviewId,
+            workflowId: reviewRequest.workflowId,
+            reason: reviewRequest.reason,
+          },
+        }));
+      }
+
+      reply.code(result.decision.status === 'rejected' ? 403 : 200);
+      return {
+        request: body,
+        result,
+        auditEvent,
+        reviewRequest,
+      };
+    } catch (error) {
+      reply.code(error instanceof PersistenceError ? 503 : 500);
+      return { error: error instanceof Error ? error.message : 'orchestration_failed' };
+    }
   });
 
   app.post('/v1/reviews/:reviewId/approve', async (request, reply) => {
@@ -160,7 +189,13 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
         auditEvent,
       };
     } catch (error) {
-      reply.code(error instanceof ReviewerAuthorizationError ? 403 : 400);
+      reply.code(
+        error instanceof ReviewerAuthorizationError
+          ? 403
+          : error instanceof PersistenceError
+            ? 503
+            : 400
+      );
       return { error: error instanceof Error ? error.message : 'review_approval_failed' };
     }
   });
@@ -186,7 +221,13 @@ export function buildApp(config: RuntimeConfig = getRuntimeConfig()) {
         auditEvent,
       };
     } catch (error) {
-      reply.code(error instanceof ReviewerAuthorizationError ? 403 : 400);
+      reply.code(
+        error instanceof ReviewerAuthorizationError
+          ? 403
+          : error instanceof PersistenceError
+            ? 503
+            : 400
+      );
       return { error: error instanceof Error ? error.message : 'review_rejection_failed' };
     }
   });

@@ -27,10 +27,11 @@ Build a production-oriented healthcare agents platform with:
 - Phase 3: Mock execution adapters. Commit `e85bfef`
 - Phase 4: Review queue and persistence. Commit `7d1fe53`
 - Phase 5: Integration boundaries and reviewer authz. Commit `d1fdcc2`
+- Phase 6: Evaluations and evidence packaging. Commit `49eaa23`
 
 ## Current Phase
 
-- Phase 6: Evaluations and evidence packaging
+- Phase 7: Persistence boundary and operational hardening
 - Status: in progress
 
 ## Planned Phases
@@ -55,6 +56,8 @@ Build a production-oriented healthcare agents platform with:
 - Replace file-backed persistence with production-grade database storage
 - Add deployment configuration, environment hardening, and runbooks
 - Add telemetry and alerting coverage for workflow failures
+- Introduce a database repository boundary with a file-backed adapter as the default implementation
+- Improve failure handling around persistence operations and API error surfaces
 
 ## Cross-Cutting Requirements
 
@@ -79,3 +82,9 @@ Build a production-oriented healthcare agents platform with:
 - Verify eval runs report pass/fail summaries against golden cases
 - Verify `document-summary` returns evidence packages with citations
 - Verify eval endpoints expose current mock quality gates
+
+## Phase 7 Verification Preview
+
+- Verify audit and review persistence now flow through repository interfaces
+- Verify persistence failures surface deterministic API errors instead of silent corruption
+- Verify current file-backed adapter still works through the new database boundary

@@ -2,13 +2,13 @@ import type { RuntimeConfig } from '../../config/src/index.js';
 import type { WorkflowResult } from '../../orchestration/src/index.js';
 import { evaluateTaskPolicy } from '../../safety/src/index.js';
 import type { AgentTask, ReviewRequest } from '../../agents/shared/src/index.js';
-import { FileReviewStore } from './store.js';
+import type { ReviewRepository } from './repository.js';
 import { runWorkflow } from '../../orchestration/src/index.js';
 import { assertReviewerAuthorized } from '../../auth/src/index.js';
 
 export class ReviewQueueService {
   constructor(
-    private readonly reviewStore: FileReviewStore,
+    private readonly reviewStore: ReviewRepository,
     private readonly config: RuntimeConfig
   ) {}
 

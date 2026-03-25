@@ -1,6 +1,8 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import type { AuditEvent } from './events.js';
+import { PersistenceError } from '../../../persistence/src/index.js';
+import type { AuditRepository } from './repository.js';
 
 function ensureJsonFile(filePath: string): void {
   mkdirSync(path.dirname(filePath), { recursive: true });
@@ -19,7 +21,7 @@ function writeJsonArray<T>(filePath: string, value: T[]): void {
   writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf-8');
 }
 
-export class FileAuditStore {
+export class FileAuditStore implements AuditRepository {
   private readonly filePath: string;
 
   constructor(baseDir: string) {
@@ -27,13 +29,21 @@ export class FileAuditStore {
   }
 
   append<TPayload extends Record<string, unknown>>(event: AuditEvent<TPayload>): AuditEvent<TPayload> {
-    const events = readJsonArray<AuditEvent>(this.filePath);
-    events.push(event);
-    writeJsonArray(this.filePath, events);
-    return event;
+    try {
+      const events = readJsonArray<AuditEvent>(this.filePath);
+      events.push(event);
+      writeJsonArray(this.filePath, events);
+      return event;
+    } catch (error) {
+      throw new PersistenceError('Failed to append audit event.', error);
+    }
   }
 
   list(): AuditEvent[] {
-    return readJsonArray<AuditEvent>(this.filePath);
+    try {
+      return readJsonArray<AuditEvent>(this.filePath);
+    } catch (error) {
+      throw new PersistenceError('Failed to load audit events.', error);
+    }
   }
 }
