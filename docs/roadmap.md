@@ -34,6 +34,7 @@ Build a production-oriented healthcare agents platform with:
 - Phase 10: Externalized perimeter state and gateway auth. Commit `f199b6f`
 - Phase 10A: Manual API testing assets. Commit `24f79d2`
 - Phase 10B: Repo-managed Codex skills. Commit pending.
+- Phase 10C: Agent-agnostic skill packaging. Commit pending.
 
 ## Current Phase
 
@@ -137,3 +138,9 @@ Build a production-oriented healthcare agents platform with:
 - Verify the repo contains the current Codex skill definitions under version control
 - Verify the install script syncs repo-managed skills into the local Codex skills directory
 - Verify the copied skills still pass quick validation after installation
+
+## Phase 10C Verification Preview
+
+- Verify the repo-managed skill folder and installer names no longer assume Codex-only usage
+- Verify the installer can target an arbitrary skill directory while still defaulting cleanly for Codex users
+- Verify the docs explain how the same skill bundle can be reused by other agent systems

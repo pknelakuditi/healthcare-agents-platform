@@ -162,3 +162,13 @@
 - Working interpretation:
   - Move the repo-specific Codex skills into the repository as the durable source of truth.
   - Add an install script and documentation so local `~/.codex/skills` can be refreshed from the repo copy.
+
+## Phase 10C
+
+- Date: 2026-03-25
+- Commit label: `Phase 10C agent-agnostic skill packaging`
+- User prompts:
+  - "refactor folder and scripts we created earlier for skills to not specific to codex but also any agent can use them"
+- Working interpretation:
+  - Rename the repo-managed skill packaging and installer to agent-agnostic terms.
+  - Keep the current Codex workflow working, but make the docs and script usable for any agent platform that can consume the same skill bundle layout.
