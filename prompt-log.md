@@ -150,3 +150,15 @@
   - Add a Postman-compatible manual test collection for the existing API surface instead of leaving manual verification as curl snippets only.
   - Include a local environment and scripts for the platform's shared-key, HMAC, gateway, orchestration, and review flows.
   - Keep the repo planning files aligned with this support phase.
+
+## Phase 10B
+
+- Date: 2026-03-25
+- Commit label: `Phase 10B repo-managed Codex skills`
+- User prompts:
+  - "how can i persist the skills i developed with this repo"
+  - "Yes, please"
+  - "retry now"
+- Working interpretation:
+  - Move the repo-specific Codex skills into the repository as the durable source of truth.
+  - Add an install script and documentation so local `~/.codex/skills` can be refreshed from the repo copy.

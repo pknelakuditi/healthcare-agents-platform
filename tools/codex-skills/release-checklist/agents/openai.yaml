@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Checklist"
+  short_description: "Run final verification and release-readiness checks"
+  default_prompt: "Use $release-checklist to run the repo's release-readiness checklist before push or handoff."

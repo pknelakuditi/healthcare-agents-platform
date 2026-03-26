@@ -66,6 +66,7 @@ prompt-log.md      Prompts used for each committed phase
 - `docs/roadmap.md`: durable multi-phase development plan
 - `docs/phases/`: one file per phase with scope, verification, and follow-ups
 - `docs/development-workflow.md`: mandatory process for future phases
+- `docs/skills.md`: repo-managed Codex skills workflow
 - `prompt-log.md`: prompts and working interpretations used for each phase commit
 
 ## Prerequisites
@@ -78,6 +79,12 @@ prompt-log.md      Prompts used for each committed phase
 ```bash
 npm install
 cp .env.example .env
+```
+
+Install the repo-managed Codex skills locally if you want to reuse the project-specific maintenance skills:
+
+```bash
+bash scripts/install-codex-skills.sh
 ```
 
 Reviewer authorization is configured with `AUTHORIZED_REVIEWER_IDS`. Only those ids can approve or reject pending review requests.

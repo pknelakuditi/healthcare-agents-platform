@@ -1,0 +1,4 @@
+interface:
+  display_name: "Phase Planner"
+  short_description: "Maintain roadmap, phase docs, and prompt logs"
+  default_prompt: "Use $phase-planner to update the repo roadmap, phase docs, and prompt log for this work."

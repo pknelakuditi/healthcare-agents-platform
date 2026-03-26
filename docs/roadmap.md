@@ -33,6 +33,7 @@ Build a production-oriented healthcare agents platform with:
 - Phase 9: Perimeter controls and machine auth. Commit `171d20c`
 - Phase 10: Externalized perimeter state and gateway auth. Commit `f199b6f`
 - Phase 10A: Manual API testing assets. Commit `24f79d2`
+- Phase 10B: Repo-managed Codex skills. Commit pending.
 
 ## Current Phase
 
@@ -130,3 +131,9 @@ Build a production-oriented healthcare agents platform with:
 - Verify the Postman collection imports cleanly with the bundled local environment
 - Verify the collection covers the current health, readiness, orchestration, review, audit, and eval endpoints
 - Verify manual testers can exercise shared-key, HMAC, and gateway-asserted auth flows without rewriting requests
+
+## Phase 10B Verification Preview
+
+- Verify the repo contains the current Codex skill definitions under version control
+- Verify the install script syncs repo-managed skills into the local Codex skills directory
+- Verify the copied skills still pass quick validation after installation

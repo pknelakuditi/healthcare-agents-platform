@@ -1,0 +1,4 @@
+interface:
+  display_name: "Healthcare Architecture Reviewer"
+  short_description: "Review healthcare safety and boundary risks"
+  default_prompt: "Use $healthcare-architecture-reviewer to review these changes for healthcare safety, auditability, and boundary risks."
